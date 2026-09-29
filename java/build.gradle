@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+ext {
+    javaVersion = JavaVersion.VERSION_17
+    springBootVersion = '3.4.3'
+    lombokVersion = '1.18.36'
+    mapStructVersion = '1.6.3'
+    lombokMapstructBindingVersion = '0.2.0'
+}
+
+allprojects {
+    group = project.path == ':' ? 'com.ggar.stvr' : (project.parent == rootProject ? "com.ggar.stvr.${project.name}" : "com.ggar.stvr${project.parent.path.replace(':', '.')}")
+    version = '0.0.1-SNAPSHOT'
+    layout.buildDirectory.set(file("${rootDir}/.build/${project.path == ':' ? '_root_' : project.path.replace(':', '_')}"))
+}
+
+// Leaf modules (actual Java libraries)
+configure(subprojects.findAll { it.childProjects.isEmpty() }) {
+    apply plugin: 'java-library'
+    apply plugin: 'io.spring.dependency-management'
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.boot:spring-boot-dependencies:${rootProject.ext.springBootVersion}"
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    dependencies {
+        // Lombok
+        compileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+        testCompileOnly "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+        testAnnotationProcessor "org.projectlombok:lombok:${rootProject.ext.lombokVersion}"
+
+        // Testing
+        testImplementation 'org.junit.jupiter:junit-jupiter-api'
+        testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+        testImplementation 'org.assertj:assertj-core'
+        testImplementation 'org.mockito:mockito-core'
+        testImplementation 'org.mockito:mockito-junit-jupiter'
+        testImplementation 'io.projectreactor:reactor-test'
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-parameters'
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+}

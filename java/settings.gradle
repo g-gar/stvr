@@ -1,0 +1,44 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'stvr'
+
+// Autodiscovery recursivo para módulos Gradle
+def discoverModules(File dir, String projectPath) {
+    if (!dir.exists() || !dir.isDirectory()) return
+
+    // Ignorar carpetas del sistema, fuentes y artefactos de compilación
+    def isIgnored = { File f ->
+        f.name.startsWith('.') || ['build', 'src', 'bin', 'out', 'gradle'].contains(f.name)
+    }
+
+    def hasBuildFile = { File f ->
+        new File(f, 'build.gradle').exists() || new File(f, 'build.gradle.kts').exists()
+    }
+
+    if (hasBuildFile(dir)) {
+        // Es un módulo Gradle ejecutable/compilable
+        include projectPath
+    } else {
+        // Es un directorio contenedor: explorar sus hijos ordenados alfabéticamente
+        dir.listFiles()?.findAll { it.isDirectory() && !isIgnored(it) }?.sort { it.name }?.each { subDir ->
+            discoverModules(subDir, "${projectPath}:${subDir.name}")
+        }
+    }
+}
+
+// Raíces principales de submódulos
+['core', 'features', 'packages', 'framework', 'presentation', 'testing'].each { rootDir ->
+    discoverModules(file(rootDir), rootDir)
+}

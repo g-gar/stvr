@@ -1,0 +1,5 @@
+dependencies {
+    api project(':core:streaming:entities')
+    implementation 'io.projectreactor:reactor-core'
+    implementation 'org.springframework:spring-core'
+}

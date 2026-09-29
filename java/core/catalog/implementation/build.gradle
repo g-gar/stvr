@@ -1,0 +1,6 @@
+dependencies {
+    api project(':core:catalog:api')
+    implementation project(':core:catalog:entities')
+    api project(':core:catalog:persistence')
+    implementation 'org.springframework:spring-context'
+}
