@@ -1,0 +1,8 @@
+dependencies {
+    api project(':features:recorder:api')
+    implementation project(':features:recorder:entities')
+    implementation project(':features:recorder:persistence')
+    implementation project(':core:streaming:api')
+    implementation project(':packages:ffmpeg')
+    implementation 'org.springframework:spring-context'
+}

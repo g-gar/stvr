@@ -1,0 +1,9 @@
+dependencies {
+    api project(':core:presence:entities')
+    implementation project(':core:presence:api')
+    implementation 'org.springframework.boot:spring-boot-starter-data-neo4j'
+    implementation "org.mapstruct:mapstruct:${rootProject.ext.mapStructVersion}"
+    annotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapStructVersion}"
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:${rootProject.ext.lombokMapstructBindingVersion}"
+    testAnnotationProcessor "org.mapstruct:mapstruct-processor:${rootProject.ext.mapStructVersion}"
+}

@@ -1,0 +1,7 @@
+dependencies {
+    api 'org.reactivestreams:reactive-streams'
+    api 'io.projectreactor:reactor-core'
+    api 'org.springframework:spring-context'
+
+    testImplementation 'org.springframework:spring-test'
+}

@@ -1,0 +1,8 @@
+dependencies {
+    testImplementation project(':testing:contracts')
+    testImplementation project(':core:catalog:implementation')
+    testImplementation project(':core:identity:implementation')
+    testImplementation project(':core:presence:implementation')
+    testImplementation project(':core:streaming:implementation')
+    testImplementation project(':packages:streamlink')
+}

@@ -1,0 +1,18 @@
+dependencies {
+    // Testing dependencies exposed as API because contracts define @Test methods and assertions
+    api 'org.junit.jupiter:junit-jupiter-api'
+    api 'org.assertj:assertj-core'
+    api 'io.projectreactor:reactor-test'
+    api 'org.mockito:mockito-core'
+    api 'org.mockito:mockito-junit-jupiter'
+
+    // Core domain APIs and entities tested by contracts
+    api project(':core:catalog:api')
+    api project(':core:catalog:entities')
+    api project(':core:identity:api')
+    api project(':core:identity:entities')
+    api project(':core:presence:api')
+    api project(':core:presence:entities')
+    api project(':core:streaming:api')
+    api project(':core:streaming:entities')
+}
