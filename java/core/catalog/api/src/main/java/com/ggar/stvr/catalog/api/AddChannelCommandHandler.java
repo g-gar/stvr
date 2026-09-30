@@ -2,8 +2,10 @@ package com.ggar.stvr.catalog.api;
 
 import com.ggar.stvr.catalog.api.exception.InvalidChannelUrlException;
 import com.ggar.stvr.catalog.entities.ChannelId;
+import com.ggar.stvr.catalog.entities.ChannelMetadata;
 import com.ggar.stvr.catalog.entities.ChannelName;
 import com.ggar.stvr.catalog.entities.ChannelUrl;
+import com.ggar.stvr.catalog.entities.GenericChannelMetadata;
 import com.ggar.stvr.catalog.entities.Platform;
 import com.ggar.stvr.framework.cqrs.Command;
 import com.ggar.stvr.framework.cqrs.CommandHandler;
@@ -69,18 +71,30 @@ public interface AddChannelCommandHandler
             ChannelUrl url,
             Platform platform,
             boolean isFavorite,
-            boolean isLive,
-            String category,
-            Set<String> tags,
-            Set<String> availableQualities
+            ChannelMetadata metadata
     ) {
         public ChannelDto {
             Objects.requireNonNull(id, "ChannelId cannot be null");
             Objects.requireNonNull(name, "ChannelName cannot be null");
             Objects.requireNonNull(url, "ChannelUrl cannot be null");
             Objects.requireNonNull(platform, "Platform cannot be null");
-            tags = tags != null ? Set.copyOf(tags) : Set.of();
-            availableQualities = availableQualities != null ? Set.copyOf(availableQualities) : Set.of();
+            metadata = metadata != null ? metadata : GenericChannelMetadata.empty();
+        }
+
+        public boolean isLive() {
+            return metadata.isLive();
+        }
+
+        public String category() {
+            return metadata.getCategory();
+        }
+
+        public Set<String> tags() {
+            return metadata.getTags();
+        }
+
+        public Set<String> availableQualities() {
+            return metadata.getAvailableQualities();
         }
 
         public ChannelDto(
@@ -90,7 +104,22 @@ public interface AddChannelCommandHandler
                 Platform platform,
                 boolean isFavorite
         ) {
-            this(id, name, url, platform, isFavorite, false, null, Set.of(), Set.of());
+            this(id, name, url, platform, isFavorite, GenericChannelMetadata.empty());
+        }
+
+        public ChannelDto(
+                ChannelId id,
+                ChannelName name,
+                ChannelUrl url,
+                Platform platform,
+                boolean isFavorite,
+                boolean isLive,
+                String category,
+                Set<String> tags,
+                Set<String> availableQualities
+        ) {
+            this(id, name, url, platform, isFavorite,
+                    GenericChannelMetadata.of(isLive, null, category, tags, availableQualities));
         }
     }
 }

@@ -14,21 +14,22 @@ This document defines the actionable, testable Use Cases across all bounded cont
   2. Verify that this channel URL is not already added by this user (`DuplicateChannelException`).
   3. Check if channel URL already exists globally in the catalog (i.e. added by another user):
      - If it exists: reuse existing `Channel` entity, establish the `(:User)-[:TRACKS]->(:Channel)` association for this `userId`, and return `ChannelDto`.
-     - If it does not exist: resolve channel metadata via domain port `ChannelInspectorFactory.getInspector(url)`:
+     - If it does not exist: resolve channel metadata via domain port `ChannelInspectorFactory.getInspector(url)` (or pluggable `PlatformMetadataProvider<T extends ChannelMetadata>`):
        - Identify streaming platform and streamer/channel slug.
-       - Extract stream title/category, initial live status, and available qualities.
+       - Extract strongly-typed `ChannelMetadata` (stream title/category, initial live status, tags, and available qualities).
   4. If no inspector supports the URL (or inspection indicates unsupported platform):
-     - If user provided `customName`, fallback to platform `CUSTOM`.
+     - If user provided `customName`, fallback to platform `CUSTOM` with empty `GenericChannelMetadata`.
      - Otherwise, throw `UnsupportedPlatformException`.
-  5. Create and persist `Channel` domain model with resolved platform, slug, name, and initial presence state.
+  5. Create and persist `Channel` domain model (`id`, `url`, `platform`, `slug`, `name`, `metadata`) with resolved platform, slug, name, and initial presence state.
   6. Associate channel with user (`(:User)-[:TRACKS]->(:Channel)`).
-  7. Return `ChannelDto`.
+  7. Return `ChannelDto` (containing resolved `ChannelMetadata`).
 - **Error Cases & Invariants:**
   - Blank or malformed URL -> throws `InvalidChannelUrlException`.
   - Duplicate URL for same user -> throws `DuplicateChannelException`.
   - Unsupported URL with no custom name fallback -> throws `UnsupportedPlatformException`.
   - Multiple users may track the exact same channel; the global channel entity is shared to avoid redundant polling.
   - Channel inspection is handled via pluggable domain port `ChannelInspector` (with implementations such as Streamlink, native platform APIs, etc.).
+  - Channel metadata is modeled as an open-closed domain hierarchy (`ChannelMetadata` abstract base class, `GenericChannelMetadata`, and typed platform extensions via `PlatformMetadataProvider<T>`) keeping the core domain pure and free from external database or API dependencies.
 - **TDD Test Scenarios:**
   - `shouldCreateChannelUsingResolvedInspectorMetadata()`
   - `shouldUseCustomNameOverrideWhenProvidedByUser()`
@@ -40,6 +41,8 @@ This document defines the actionable, testable Use Cases across all bounded cont
   - `shouldThrowExceptionWhenChannelAlreadyExistsForUser()`
   - `shouldSaveAndReturnChannelWithCorrectUserAssociation()`
   - `shouldAssociateExistingChannelWhenAddedByAnotherUser()`
+  - `shouldCreateAndValidateGenericChannelMetadata()`
+  - `shouldCreateAndValidateChannelEntity()`
 
 ---
 

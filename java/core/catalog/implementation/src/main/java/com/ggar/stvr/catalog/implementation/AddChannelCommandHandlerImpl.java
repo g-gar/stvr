@@ -72,10 +72,7 @@ public class AddChannelCommandHandlerImpl implements AddChannelCommandHandler {
                             command.url(),
                             inspectionResult.platform(),
                             false,
-                            inspectionResult.isLive(),
-                            inspectionResult.category(),
-                            inspectionResult.tags(),
-                            inspectionResult.availableQualities()
+                            inspectionResult.metadata()
                     );
 
                     return channelRepository.saveAndAssociate(command.userId(), newChannel);

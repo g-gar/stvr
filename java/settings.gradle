@@ -39,6 +39,6 @@ def discoverModules(File dir, String projectPath) {
 }
 
 // Raíces principales de submódulos
-['core', 'features', 'packages', 'framework', 'presentation', 'testing'].each { rootDir ->
+['core', 'features', 'packages', 'plugins', 'framework', 'presentation', 'testing'].each { rootDir ->
     discoverModules(file(rootDir), rootDir)
 }

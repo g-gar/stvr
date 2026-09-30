@@ -24,7 +24,8 @@ To ensure industrial-grade software engineering, maintainability, and clear sepa
 - **Core First:** The system is fundamentally a live streaming hub. Features such as recording, historical media management, and Docker execution are pluggable extensions that do not pollute the core business logic.
 - **Pure Domain Models:** Domain entities are pure Java POJOs/Records without any database annotations, ORM tags, or Spring Data imports.
 - **Isolated Persistence:** All database-specific models (Neo4j `@Node`, `@Relationship`), repositories, and query logic are strictly contained inside dedicated `persistence` submodules. Mappers (MapStruct) bridge domain models and graph nodes.
-- **External Tools as Packages:** Third-party CLI tools and system wrappers (Streamlink, Docker, FFmpeg) live inside a dedicated `packages/` module namespace, completely decoupled from business domain logic.
+- **External Tools as Packages:** Third-party CLI tools and system wrappers (Streamlink, yt-dlp, TikTok Live Recorder, Docker, FFmpeg) live inside a dedicated `packages/` module namespace, completely decoupled from business domain logic.
+- **Hot-Pluggable Adapters as Plugins:** Connectors between third-party tool packages and Core SPI ports live inside dedicated plugin modules (`plugins/`). This ensures that tools can be added, swapped, or removed dynamically without recompiling or altering the Core.
 
 ---
 
@@ -34,55 +35,72 @@ STVR is organized into a hierarchical multi-module Gradle project using the **AP
 
 ```text
 stvr/
-├── build.gradle                          # Root Gradle configuration, plugin management & versions
-├── settings.gradle                       # Module declarations & hierarchy
-│
-├── core/                                 # Fundamental Bounded Contexts (The Streaming Hub)
-│   ├── identity/                         # User accounts, authentication & authorization
-│   │   ├── entities/                     # Pure domain models (User, Role, UserPreference)
-│   │   ├── api/                          # UserService, SecurityContext, UserDto, Events
-│   │   ├── persistence/                  # UserNode, ReactiveUserRepository, MapStruct mappers
-│   │   └── implementation/               # UserServiceImpl, Password hashing, JWT/Session
-│   │
-│   ├── catalog/                          # Channel & platform management
-│   │   ├── entities/                     # Pure domain models (Channel, Platform)
-│   │   ├── api/                          # Public contracts (ChannelService, ChannelDto, Events)
-│   │   ├── persistence/                  # ChannelNode, ReactiveChannelRepository, MapStruct mappers
-│   │   └── implementation/               # ChannelServiceImpl (Business use cases)
-│   │
-│   ├── presence/                         # Live presence & status monitoring (Online / Offline)
-│   │   ├── entities/                     # Pure presence status models
-│   │   ├── api/                          # PlatformStatusProvider (SPI), ChannelStatusChangedEvent
-│   │   ├── persistence/                  # Historical presence records & queries
-│   │   └── implementation/               # LivePresenceHubImpl, Platform-specific status providers
-│   │
-│   └── streaming/                        # Live stream ingestion & in-memory distribution
-│       ├── entities/                     # StreamSession, StreamQuality, StreamBuffer
-│       ├── api/                          # StreamPipeline, StreamHub, StreamSink interfaces
-│       ├── persistence/                  # Active session persistence (if required)
-│       └── implementation/               # ChannelStreamHubImpl, Reactive multicast engine
-│
-├── packages/                             # Technical adapters & external CLI/tool wrappers
-│   ├── streamlink/                       # Streamlink process runner & CLI argument builder
-│   ├── docker/                           # Docker CLI adapter (Local socket or remote via --host)
-│   └── ffmpeg/                           # FFmpeg process orchestrator & hot-reload profiles
-│
-├── features/                             # Pluggable extended functionalities
-│   ├── recorder/                         # Background & on-demand recording engine
-│   │   ├── entities/                     # Pure models: RecordingSession, RecordingProfile
-│   │   ├── api/                          # RecorderService, RecordingSessionDto
-│   │   ├── persistence/                  # RecordingNode, ReactiveRecordingRepository, Mappers
-│   │   └── implementation/               # FfmpegRecorderSink (taps into core:streaming:api)
-│   │
-│   └── media/                            # Recorded video archive & Byte-Range HTTP streaming
-│       ├── entities/                     # Pure models: MediaItem, VideoMetadata
-│       ├── api/                          # MediaStorageService, VideoStreamRange
-│       ├── persistence/                  # MediaFileNode, ReactiveMediaRepository, Mappers
-│       └── implementation/               # MediaStorageServiceImpl, HTTP 206 Partial Content server
-│
-└── server/                               # Executable Spring Boot application & Web UI
-    ├── src/main/java/                    # REST WebFlux Controllers, SSE Endpoints, Security/CORS
-    └── src/main/resources/static/        # Modern Web UI (Dark theme, Channel Sidebar, Zapping Player)
+└── java/                                 # Root Gradle project
+    ├── build.gradle                      # Root Gradle configuration, plugin management & versions
+    ├── settings.gradle                   # Recursive autodiscovery for submodules
+    │
+    ├── framework/                        # Reusable architectural primitives (CQRS, Mediator)
+    │   ├── cqrs/                         # Command, CommandHandler, Query, QueryHandler abstractions
+    │   └── mediator/                     # SpringMediator and Mediator abstraction
+    │
+    ├── core/                             # Fundamental Bounded Contexts (The Streaming Hub)
+    │   ├── identity/                     # User accounts, authentication & authorization
+    │   │   ├── entities/                 # Pure domain models (UserId, Role, UserPreference)
+    │   │   ├── api/                      # UserService, SecurityContext, UserDto, Events
+    │   │   ├── persistence/              # UserNode, ReactiveUserRepository, MapStruct mappers
+    │   │   └── implementation/           # UserServiceImpl, Password hashing, JWT/Session
+    │   │
+    │   ├── catalog/                      # Channel & platform management
+    │   │   ├── entities/                 # Pure domain models (Channel, Platform, ChannelMetadata, GenericChannelMetadata)
+    │   │   ├── api/                      # Public contracts (Command/Query Handlers, DTOs, ChannelInspector Port/SPI)
+    │   │   ├── persistence/              # ChannelNode, ReactiveChannelRepository, MapStruct mappers
+    │   │   └── implementation/           # Command & Query Handler implementations (CQRS)
+    │   │
+    │   ├── presence/                     # Live presence & status monitoring (Online / Offline)
+    │   │   ├── entities/                 # Pure presence status models
+    │   │   ├── api/                      # PlatformStatusProvider (SPI), ChannelStatusChangedEvent
+    │   │   ├── persistence/              # Historical presence records & queries
+    │   │   └── implementation/           # LivePresenceHubImpl, Platform-specific status providers
+    │   │
+    │   └── streaming/                    # Live stream ingestion & in-memory distribution
+    │       ├── entities/                 # StreamSession, StreamQuality, StreamBuffer
+    │       ├── api/                      # StreamPipeline, StreamHub, StreamSink interfaces
+    │       ├── persistence/              # Active session persistence (if required)
+    │       └── implementation/           # ChannelStreamHubImpl, Reactive multicast engine
+    │
+    ├── packages/                         # Agnostic technical adapters & external CLI/tool wrappers
+    │   ├── streamlink/                   # Streamlink CLI wrapper & JSON output parser
+    │   ├── ytdlp/                        # yt-dlp CLI wrapper & extractor parser
+    │   ├── tiktokliverecorder/           # TikTok Live Recorder CLI wrapper
+    │   ├── docker/                       # Docker CLI adapter (Local socket or remote via --host)
+    │   └── ffmpeg/                       # FFmpeg process orchestrator & hot-reload profiles
+    │
+    ├── plugins/                          # Hot-swappable integrations bridging packages/ to core SPI ports
+    │   ├── streamlink/                   # Adapts packages:streamlink to ChannelInspector & PlatformStatusProvider
+    │   ├── ytdlp/                        # Adapts packages:ytdlp to ChannelInspector
+    │   └── tiktokliverecorder/           # Adapts packages:tiktokliverecorder to ChannelInspector
+    │
+    ├── features/                         # Pluggable extended functionalities
+    │   ├── recorder/                     # Background & on-demand recording engine
+    │   │   ├── entities/                 # Pure models: RecordingSession, RecordingProfile
+    │   │   ├── api/                      # RecorderService, RecordingSessionDto
+    │   │   ├── persistence/              # RecordingNode, ReactiveRecordingRepository, Mappers
+    │   │   └── implementation/           # FfmpegRecorderSink (taps into core:streaming:api)
+    │   │
+    │   └── media/                        # Recorded video archive & Byte-Range HTTP streaming
+    │       ├── entities/                 # Pure models: MediaItem, VideoMetadata
+    │       ├── api/                      # MediaStorageService, VideoStreamRange
+    │       ├── persistence/              # MediaFileNode, ReactiveMediaRepository, Mappers
+    │       └── implementation/           # MediaStorageServiceImpl, HTTP 206 Partial Content server
+    │
+    ├── presentation/                     # Delivery layer (REST, SSE, Web UI, Player)
+    │   └── server/                       # Executable Spring Boot application & static web player
+    │
+    └── testing/                          # Multi-level test suites
+        ├── contracts/                    # Reusable Contract Test suites (AddChannelContractTest, etc.)
+        └── integration/                  # Integration test suites
+            ├── mocked/                   # Integration tests using fast in-memory mocks
+            └── real/                     # Integration tests with Testcontainers & real external daemons
 ```
 
 ---
@@ -176,8 +194,8 @@ graph TD
 ## 7. Execution Modes & Tool Integration (`packages/`)
 
 ### 7.1 Streamlink Runner & Inspector (`packages:streamlink` & `packages:docker`)
-Streamlink execution is decoupled using the Strategy pattern:
-- **`StreamlinkInspector` (`--json`):** Queries `streamlink --json <url>` to automatically detect supported platforms (from `plugin`), extract channel metadata (`author`, `title`), and check live presence & available qualities.
+Streamlink execution is decoupled using the Strategy pattern and Hexagonal Ports & Adapters:
+- **`StreamlinkChannelInspector` (`--json`):** Technical probe adapter implementing the core domain port `ChannelInspector` (`core:catalog:api.inspector`). Queries `streamlink --json <url>` to detect supported platforms (from `plugin`), extract channel metadata (`author`, `title`), and check live presence & available qualities without requiring platform API credentials.
 - **`NativeStreamlinkRunner`:** Directly invokes the host `streamlink` binary from system `PATH`. Universal for standard installations.
 - **`DockerStreamlinkRunner`:** Invokes `docker [--host <remote_host>] exec -i <container_name> streamlink ...` (targeting the `streamlink` container). Supports local Docker daemons or remote Docker endpoints via `--host` / `DOCKER_HOST`.
 
@@ -267,17 +285,17 @@ graph TD
 | :--- | :--- | :--- |
 | **Java 17 (OpenJDK)** | Core language runtime (LTS) | All modules |
 | **Gradle 9.x (Groovy DSL)** | Multi-module build automation & dependency management | Root (`build.gradle`, `settings.gradle`) |
-| **Spring Boot 3.x (WebFlux)** | Reactive, non-blocking web framework, Netty server, REST & SSE | `server`, `api`, `implementation` |
-| **Project Reactor** | Reactive programming model (`Mono`, `Flux`, `Sinks.many().multicast()`) | `core:*`, `features:*`, `server` |
+| **Spring Boot 3.x (WebFlux)** | Reactive, non-blocking web framework, Netty server, REST & SSE | `presentation:server`, `api`, `implementation` |
+| **Project Reactor** | Reactive programming model (`Mono`, `Flux`, `Sinks.many().multicast()`) | `core:*`, `features:*`, `presentation:server` |
 | **Spring Data Neo4j (SDN)** | Reactive graph object mapping (`ReactiveNeo4jRepository`) | `*:persistence` modules |
-| **Neo4j Java Driver** | High-performance Bolt protocol connection to Neo4j | `*:persistence`, `server` |
+| **Neo4j Java Driver** | High-performance Bolt protocol connection to Neo4j | `*:persistence`, `presentation:server` |
 | **MapStruct** | Compile-time, type-safe mapping between Domain Models and Graph Nodes | `*:persistence` modules |
 | **Project Lombok** | Boilerplate reduction (getters, builders, constructors, slf4j) | Compile-only across all modules |
-| **Jackson (JSR310)** | Non-blocking JSON serialization/deserialization | `api`, `server` |
+| **Jackson (JSR310)** | Non-blocking JSON serialization/deserialization | `api`, `presentation:server` |
 | **MediaMTX / SRT Protocol** | Path-based single-port media gateway for N concurrent streams | Ingestion Workers |
 | **Streamlink CLI** | Origin media stream resolution and packet extraction | `packages:streamlink`, `packages:docker` |
 | **FFmpeg** | Video encoding, hardware acceleration (NVENC/CUDA) & container packaging | `packages:ffmpeg` |
-| **Modern Frontend (Vanilla Web)** | Reactive HTML5 video player, Server-Sent Events listener, Dark UI | `server/src/main/resources/static` |
+| **Modern Frontend (Vanilla Web)** | Reactive HTML5 video player, Server-Sent Events listener, Dark UI | `presentation/server/src/main/resources/static` |
 
 ---
 
@@ -289,3 +307,109 @@ graph TD
 4. **Presence & Catalog:** Implement channel management and platform status providers.
 5. **Pluggable Recorder:** Implement FFmpeg recording sink and dynamic tap.
 6. **Web Server & UI:** Implement WebFlux controllers, SSE feeds, and the modern television-style zapping interface.
+
+---
+
+## 12. Architectural Decision Records (ADR) & Key Design Rationales
+
+This section formally documents critical design decisions made during the evolution of the STVR architecture, recording the context, evaluated alternatives, and engineering rationale.
+
+### ADR-01: Extensibility of Channel Metadata via Typed Class Inheritance (over Generic Maps or Monolithic POJOs)
+- **Status:** Accepted
+- **Context:** Different streaming platforms (Twitch, YouTube, Kick, etc.) provide distinct, platform-specific metadata (e.g. Twitch broadcaster type/affiliate tier, YouTube scheduled start time/privacy status, Kick chatroom ID). The system needed an extensible mechanism to represent these attributes while maintaining a clean, agnostic core.
+- **Alternatives Considered:**
+  1. *Flat Map/Attributes dictionary (`Map<String, Object>`)*: Requires string literal keys ("magic strings"), bypasses compile-time type checking, and forces continuous downcasting with high risk of `ClassCastException`.
+  2. *Monolithic POJO with optional fields for all platforms*: Violates the Open-Closed Principle (OCP), creates unnecessary coupling, and forces core modifications whenever an external platform adds or alters attributes.
+- **Decision:** Use an abstract domain base class `ChannelMetadata` with strongly-typed common fields (`isLive`, `title`, `category`, `tags`, `availableQualities`) in `core:catalog:entities`, accompanied by a standard fallback implementation (`GenericChannelMetadata`). Platform-specific modules extend this base class (e.g. `TwitchChannelMetadata extends ChannelMetadata`), preserving 100% type safety and IDE autocomplete without leaking external dependencies or proprietary fields into the core domain.
+
+### ADR-02: Spring Bean Autodiscovery for Platform Providers (Elimination of Composite Factories)
+- **Status:** Accepted
+- **Context:** Platform metadata providers need to be registered and resolved dynamically at runtime based on platform type or channel URL.
+- **Alternatives Considered:**
+  1. *Custom Composite Factories (`CompositePlatformMetadataProviderFactory`)*: Introduces an additional wrapper layer and boilerplate registry code.
+  2. *Spring Autowired Collections*: Spring natively discovers all `@Component` beans implementing a common interface (`PlatformMetadataProvider<T>`) and injects them as `List<PlatformMetadataProvider<?>>` via constructor injection.
+- **Decision:** Rely directly on Spring's native bean autodiscovery for `PlatformMetadataProvider<T>`. Consuming services inject the provider list directly into their constructor, removing redundant wrapper factories and minimizing accidental architectural complexity. Pure unit tests achieve the exact same behavior by supplying `List.of(mockProvider)`.
+
+### ADR-03: Decoupled Channel Inspection and Pluggable Inspector Factory (Ports & Adapters / DI Strategy)
+- **Status:** Accepted
+- **Context:** When a channel is registered via `AddChannelCommandHandler` (UC-CAT-01), the system must validate the URL, identify the streaming platform, extract streamer slug and display name, and detect the initial live status and available stream qualities without requiring upfront user credentials.
+  In initial drafts, `core:catalog:implementation` directly invoked Streamlink CLI commands (`streamlink --json <url>`), creating a direct compile-time and runtime dependency on `packages:streamlink`.
+  This violated core architectural principles:
+  1. *Violation of Dependency Inversion Principle (DIP):* High-level business logic in `core:catalog` depended on low-level infrastructure details (a third-party Python CLI wrapper).
+  2. *Single Tool Monopoly:* Streaming platforms often offer multiple resolution paths: official REST APIs (Twitch Helix, YouTube Data API v3), alternative extractors (`yt-dlp`), direct HLS/DASH manifest probes, or internal RTMP/SRT ingest endpoints. Tying the core to Streamlink prevented coexistence or dynamic selection among providers.
+  3. *Testability Bottlenecks:* Contract and unit tests would require external binaries, Docker daemons, or heavy process mocking, slowing down test execution and introducing brittleness.
+
+- **Alternatives Considered:**
+  1. *Direct Core Dependency on Streamlink (`core:catalog -> packages:streamlink`)*: Direct coupling, makes Streamlink mandatory across the entire application lifecycle, prevents alternative inspectors, and violates hexagonal architecture.
+  2. *Hardcoded `switch(platform)` / Conditional Branches in Core*: Violates the Open-Closed Principle (OCP); adding a new platform or provider forces modifications inside core use case handlers.
+  3. *Static Factory / ServiceLocator*: Uses global static state, impeding test isolation and concurrent test execution.
+  4. *Hexagonal Port (`ChannelInspector`) + Factory/Composite Pattern with Spring Constructor DI*: The Core defines a clean domain port and relies on dependency injection. Concrete adapters implement the port in external packages, and a composite factory orchestrates them based on URL compatibility and priority.
+
+- **Decision:** Adopt Hexagonal Architecture (Ports and Adapters) with dynamic Dependency Injection:
+  1. **Domain Outbound Port (`core:catalog:api.inspector`):**
+     - `ChannelInspector`: Contract defining `boolean supports(ChannelUrl url)` and `Mono<ChannelInspectionResult> inspect(ChannelUrl url)`.
+     - `ChannelInspectionResult`: Pure domain record encapsulating platform, slug, name, live status, category, tags, and available stream qualities.
+     - `ChannelInspectorFactory`: Port interface exposing `Optional<ChannelInspector> getInspector(ChannelUrl url)`.
+     - `CompositeChannelInspectorFactory`: Standard composite implementation that evaluates registered inspectors in priority order.
+  2. **Infrastructure Adapters (`plugins:streamlink`, `plugins:ytdlp`, `plugins:tiktokliverecorder`):**
+     - Adapters live inside dedicated plugin modules under `plugins/` (e.g. `StreamlinkChannelInspector` in `plugins:streamlink`), bridging agnostic tool wrappers (`packages/`) to the domain port `ChannelInspector`.
+     - `core:catalog:implementation` has **zero build dependencies** on external tools or plugin modules.
+  3. **Dependency Injection & Spring Autodiscovery:**
+     - *Spring Runtime:* Spring automatically discovers all beans implementing `ChannelInspector` (`@Component`) and injects them as `List<ChannelInspector>` into `CompositeChannelInspectorFactory`. Bean order (`@Order`) controls precedence (e.g. Native Platform APIs > CLI Extractors like Streamlink/yt-dlp > Generic Probes).
+     - *Pure TDD / Unit & Contract Testing:* Tests inject a fast in-memory `MockChannelInspector` directly into `CompositeChannelInspectorFactory.of(mockInspector)`, allowing comprehensive contract suites (e.g. `AddChannelContractTest`) to execute 10 scenarios in milliseconds without Docker or network dependencies.
+  4. **Multi-Step Resolution Pipeline in `AddChannelCommandHandlerImpl`:**
+     - Step 1: User-level duplicate check (`existsUserChannel`) -> throws `DuplicateChannelException` if already tracked.
+     - Step 2: Global catalog check (`findChannelByUrl`) -> if channel already exists in system, reuses the existing `Channel` entity and establishes user association `(:User)-[:TRACKS]->(:Channel)`, avoiding redundant inspection and duplicate polling.
+     - Step 3: Dynamic inspector resolution via `ChannelInspectorFactory.getInspector(url)`.
+     - Step 4: Reactive metadata extraction (`inspector.inspect(url)`). User-provided `customName` takes precedence over scraped name if present.
+     - Step 5: Fallback handling: If no inspector supports the URL or inspection fails:
+       - If user provided `customName`: falls back to `Platform.CUSTOM`.
+       - If no `customName`: throws `UnsupportedPlatformException`.
+
+```mermaid
+flowchart TD
+    subgraph "Core: Catalog Bounded Context"
+        subgraph "core:catalog:api.inspector"
+            Port["<<interface>>\nChannelInspector\n+supports(url): boolean\n+inspect(url): Mono<ChannelInspectionResult>"]
+            Factory["<<interface>>\nChannelInspectorFactory\n+getInspector(url): Optional<ChannelInspector>"]
+            Composite["CompositeChannelInspectorFactory\n(implements ChannelInspectorFactory)"]
+        end
+
+        subgraph "core:catalog:implementation"
+            Handler["AddChannelCommandHandlerImpl\n(injects ChannelInspectorFactory & ChannelRepository)"]
+        end
+    end
+
+    subgraph "Plugins (Hot-Swappable Adapters)"
+        SL["StreamlinkChannelInspector\n(plugins:streamlink)"]
+        YT["YtDlpChannelInspector\n(plugins:ytdlp)"]
+        TT["TikTokChannelInspector\n(plugins:tiktokliverecorder)"]
+    end
+
+    subgraph "Packages (Agnostic Tool Wrappers)"
+        SL_CLI["Streamlink CLI Wrapper\n(packages:streamlink)"]
+        YT_CLI["yt-dlp CLI Wrapper\n(packages:ytdlp)"]
+        TT_CLI["TikTok Live Recorder Wrapper\n(packages:tiktokliverecorder)"]
+    end
+
+    subgraph "Testing Layer"
+        Mock["MockChannelInspector\n(testing:integration:mocked)"]
+    end
+
+    Handler --> Factory
+    Factory <|.. Composite
+    Composite --> Port
+    SL -. implements .-> Port
+    YT -. implements .-> Port
+    TT -. implements .-> Port
+    Mock -. implements .-> Port
+
+    SL --> SL_CLI
+    YT --> YT_CLI
+    TT --> TT_CLI
+```
+
+- **Consequences:**
+  - *Positive:* Total decoupling of Core from third-party tools; adding or replacing extraction mechanisms (Streamlink, `ytdlp`, `tiktokliverecorder`) requires zero changes and zero recompilations of `core:catalog`; 100% deterministic, high-speed contract tests.
+  - *Trade-off:* Requires an additional port and factory abstraction, but this cost is negligible compared to the architectural flexibility gained.
+
