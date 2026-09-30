@@ -1,8 +1,10 @@
 package com.ggar.stvr.catalog.api;
 
 import com.ggar.stvr.catalog.entities.ChannelId;
+import com.ggar.stvr.catalog.entities.ChannelMetadata;
 import com.ggar.stvr.catalog.entities.ChannelName;
 import com.ggar.stvr.catalog.entities.ChannelUrl;
+import com.ggar.stvr.catalog.entities.GenericChannelMetadata;
 import com.ggar.stvr.catalog.entities.Platform;
 import com.ggar.stvr.catalog.api.filter.ChannelFilter;
 import com.ggar.stvr.framework.cqrs.Query;
@@ -50,9 +52,7 @@ public interface ListUserChannelsQueryHandler
      * @param url Stream URL for playback ingestion.
      * @param platform Streaming service provider.
      * @param isFavorite Flag indicating if the channel is marked as a user favorite.
-     * @param isLive Flag indicating if the channel is currently streaming live.
-     * @param category Active category or game title, or null if offline/unavailable.
-     * @param tags Associated categorization tags.
+     * @param metadata Associated channel and live stream metadata.
      */
     record UserChannelListItemDto(
             ChannelId id,
@@ -60,16 +60,26 @@ public interface ListUserChannelsQueryHandler
             ChannelUrl url,
             Platform platform,
             boolean isFavorite,
-            boolean isLive,
-            String category,
-            Set<String> tags
+            ChannelMetadata metadata
     ) {
         public UserChannelListItemDto {
             Objects.requireNonNull(id, "Channel id cannot be null");
             Objects.requireNonNull(name, "Channel name cannot be null");
             Objects.requireNonNull(url, "Channel url cannot be null");
             Objects.requireNonNull(platform, "Channel platform cannot be null");
-            tags = tags != null ? Set.copyOf(tags) : Set.of();
+            metadata = metadata != null ? metadata : GenericChannelMetadata.empty();
+        }
+
+        public boolean isLive() {
+            return metadata.isLive();
+        }
+
+        public String category() {
+            return metadata.getCategory();
+        }
+
+        public Set<String> tags() {
+            return metadata.getTags();
         }
 
         public UserChannelListItemDto(
@@ -79,7 +89,20 @@ public interface ListUserChannelsQueryHandler
                 Platform platform,
                 boolean isFavorite
         ) {
-            this(id, name, url, platform, isFavorite, false, null, Set.of());
+            this(id, name, url, platform, isFavorite, GenericChannelMetadata.empty());
+        }
+
+        public UserChannelListItemDto(
+                ChannelId id,
+                ChannelName name,
+                ChannelUrl url,
+                Platform platform,
+                boolean isFavorite,
+                boolean isLive,
+                String category,
+                Set<String> tags
+        ) {
+            this(id, name, url, platform, isFavorite, GenericChannelMetadata.of(isLive, null, category, tags, Set.of()));
         }
     }
 }

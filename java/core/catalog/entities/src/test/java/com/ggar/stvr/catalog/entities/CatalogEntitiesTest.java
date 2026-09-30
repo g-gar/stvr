@@ -45,4 +45,53 @@ class CatalogEntitiesTest {
         assertThatThrownBy(() -> ChannelUrl.of("   "))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void shouldCreateAndValidateGenericChannelMetadata() {
+        GenericChannelMetadata metadata = GenericChannelMetadata.of(
+                true,
+                "Stream Title",
+                "Just Chatting",
+                java.util.Set.of("es", "irl"),
+                java.util.Set.of("1080p60", "720p60")
+        );
+
+        assertThat(metadata.isLive()).isTrue();
+        assertThat(metadata.getTitle()).isEqualTo("Stream Title");
+        assertThat(metadata.getCategory()).isEqualTo("Just Chatting");
+        assertThat(metadata.getTags()).containsExactlyInAnyOrder("es", "irl");
+        assertThat(metadata.getAvailableQualities()).containsExactlyInAnyOrder("1080p60", "720p60");
+
+        GenericChannelMetadata empty = GenericChannelMetadata.empty();
+        assertThat(empty.isLive()).isFalse();
+        assertThat(empty.getTitle()).isNull();
+        assertThat(empty.getCategory()).isNull();
+        assertThat(empty.getTags()).isEmpty();
+        assertThat(empty.getAvailableQualities()).isEmpty();
+    }
+
+    @Test
+    void shouldCreateAndValidateChannelEntity() {
+        ChannelId id = ChannelId.random();
+        ChannelUrl url = ChannelUrl.of("https://twitch.tv/ibai");
+        ChannelName name = ChannelName.of("Ibai");
+        GenericChannelMetadata metadata = GenericChannelMetadata.offline();
+
+        Channel channel = new Channel(id, url, Platform.TWITCH, "ibai", name, metadata);
+
+        assertThat(channel.getId()).isEqualTo(id);
+        assertThat(channel.getUrl()).isEqualTo(url);
+        assertThat(channel.getPlatform()).isEqualTo(Platform.TWITCH);
+        assertThat(channel.getSlug()).isEqualTo("ibai");
+        assertThat(channel.getName()).isEqualTo(name);
+        assertThat(channel.getMetadata()).isEqualTo(metadata);
+
+        GenericChannelMetadata liveMetadata = GenericChannelMetadata.online("Live now", "Gaming", java.util.Set.of("1080p60"));
+        channel.updateMetadata(liveMetadata);
+        assertThat(channel.getMetadata()).isEqualTo(liveMetadata);
+
+        Channel sameIdChannel = new Channel(id, url, Platform.TWITCH, "ibai", name);
+        assertThat(channel).isEqualTo(sameIdChannel);
+        assertThat(channel.hashCode()).isEqualTo(sameIdChannel.hashCode());
+    }
 }
