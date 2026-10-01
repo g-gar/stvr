@@ -318,6 +318,24 @@ This document defines the actionable, testable Use Cases across all bounded cont
 
 ---
 
+### UC-AUTH-03: Revoke Token (Logout)
+- **Actor:** Authenticated User
+- **Inputs:** `token: String`
+- **Primary Flow:**
+  1. Validate token structure, signature, and extract `jti` (JWT ID) and expiration.
+  2. Register `jti` in token revocation repository until token expiration.
+  3. Subsequent validations of this token must fail.
+  4. Return confirmation (boolean or empty completion).
+- **Error Cases:**
+  - Blank, malformed or invalid token signature -> throws `InvalidTokenException`.
+- **TDD Test Scenarios:**
+  - `shouldRevokeTokenSuccessfullyAndRejectSubsequentValidations()`
+  - `shouldRejectRevocationWhenTokenIsBlankOrMalformed()`
+  - `shouldHandleAlreadyExpiredOrInvalidTokenGracefully()`
+
+---
+
+
 ## 7. `packages:streamlink` (Streamlink JSON Inspector & Docker Process Runner)
 
 ### UC-SL-01: Parse Streamlink JSON Inspection

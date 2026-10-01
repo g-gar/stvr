@@ -1,6 +1,10 @@
 dependencies {
     api project(':core:identity:api')
     implementation project(':core:identity:entities')
-    implementation project(':core:identity:persistence')
+    api project(':core:identity:persistence')
     implementation 'org.springframework:spring-context'
+    implementation 'org.springframework.security:spring-security-crypto'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 }
+
+
