@@ -1,0 +1,4 @@
+dependencies {
+    api project(':core:catalog:entities')
+    implementation 'jakarta.validation:jakarta.validation-api'
+}

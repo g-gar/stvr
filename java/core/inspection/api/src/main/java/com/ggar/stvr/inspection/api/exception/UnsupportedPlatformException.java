@@ -1,12 +1,11 @@
-package com.ggar.stvr.catalog.api.exception;
+package com.ggar.stvr.inspection.api.exception;
 
 import com.ggar.stvr.catalog.entities.ChannelUrl;
 
 import java.util.Objects;
 
 /**
- * Exception thrown when a channel URL cannot be resolved by any registered inspector
- * and no fallback custom name was provided.
+ * Exception thrown when a channel URL cannot be resolved or inspected by any registered plugin/resolver.
  */
 public class UnsupportedPlatformException extends RuntimeException {
 

@@ -2,7 +2,7 @@ package com.ggar.stvr.packages.streamlink.plugins;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.ggar.stvr.packages.streamlink.command.AbstractStreamlinkCommandBuilder;
-import com.ggar.stvr.packages.streamlink.model.StreamlinkInspection;
+import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamInfo;
 
 import java.util.Locale;
 
@@ -48,9 +48,9 @@ public interface StreamlinkPlugin {
      * @param rootNode Jackson root node representing Streamlink output
      * @param targetUrl original stream URL
      * @param locale user-selected locale for error formatting
-     * @return validated StreamlinkInspection model
+     * @return validated StreamlinkStreamInfo model
      */
-    StreamlinkInspection parse(JsonNode rootNode, String targetUrl, Locale locale);
+    StreamlinkStreamInfo parse(JsonNode rootNode, String targetUrl, Locale locale);
 
     /**
      * Handles and maps a plugin-specific error to a typed exception with the specified locale.

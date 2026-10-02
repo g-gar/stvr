@@ -19,9 +19,6 @@ class ChannelFilterTest {
         assertThat(filter.nameQuery()).isNull();
         assertThat(filter.platforms()).isEmpty();
         assertThat(filter.favoritesOnly()).isFalse();
-        assertThat(filter.isLive()).isNull();
-        assertThat(filter.category()).isNull();
-        assertThat(filter.tags()).isEmpty();
     }
 
     @Test
@@ -32,32 +29,21 @@ class ChannelFilterTest {
                 .platform(Platform.TWITCH)
                 .platforms(List.of(Platform.YOUTUBE))
                 .favoritesOnly(true)
-                .isLive(true)
-                .category("Just Chatting")
-                .tag(" ESPORTS ")
-                .tags(List.of("Gaming", " "))
                 .build();
 
         assertThat(filter.nameQuery()).isEqualTo("Ibai");
         assertThat(filter.platforms()).containsExactlyInAnyOrder(Platform.TWITCH, Platform.YOUTUBE);
         assertThat(filter.favoritesOnly()).isTrue();
-        assertThat(filter.isLive()).isTrue();
-        assertThat(filter.category()).isEqualTo("Just Chatting");
-        assertThat(filter.tags()).containsExactlyInAnyOrder("esports", "gaming");
     }
 
     @Test
-    @DisplayName("Platforms and tags sets in ChannelFilter should be immutable")
+    @DisplayName("Platforms set in ChannelFilter should be immutable")
     void shouldEnsureImmutability() {
         ChannelFilter filter = ChannelFilter.builder()
                 .platform(Platform.TWITCH)
-                .tag("esports")
                 .build();
 
         assertThatThrownBy(() -> filter.platforms().add(Platform.KICK))
-                .isInstanceOf(UnsupportedOperationException.class);
-
-        assertThatThrownBy(() -> filter.tags().add("other"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 }

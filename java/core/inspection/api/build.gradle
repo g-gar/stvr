@@ -1,0 +1,6 @@
+dependencies {
+    api project(':core:inspection:entities')
+    api project(':core:catalog:entities')
+    api project(':framework')
+    implementation 'io.projectreactor:reactor-core'
+}

@@ -5,7 +5,7 @@ import com.ggar.stvr.packages.streamlink.exception.StreamlinkExecutionException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkNoStreamsException;
 import com.ggar.stvr.packages.streamlink.executor.CommandExecutor;
 import com.ggar.stvr.packages.streamlink.executor.CommandResult;
-import com.ggar.stvr.packages.streamlink.model.StreamlinkInspection;
+import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamInfo;
 import com.ggar.stvr.packages.streamlink.plugins.twitch.TwitchCommandBuilder;
 import com.ggar.stvr.packages.streamlink.session.StreamlinkSession;
 import org.junit.jupiter.api.BeforeEach;

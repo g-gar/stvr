@@ -8,7 +8,7 @@ import com.ggar.stvr.packages.streamlink.exception.StreamlinkNoStreamsException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkParseException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkPluginNotFoundException;
 import com.ggar.stvr.packages.streamlink.i18n.StreamlinkMessages;
-import com.ggar.stvr.packages.streamlink.model.StreamlinkInspection;
+import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamInfo;
 import com.ggar.stvr.packages.streamlink.plugins.StreamlinkPlugin;
 import com.ggar.stvr.packages.streamlink.plugins.StreamlinkPluginRegistry;
 import lombok.extern.slf4j.Slf4j;
@@ -45,9 +45,9 @@ public class StreamlinkJsonParser {
      *
      * @param rawJson JSON string from streamlink standard output
      * @param targetUrl original URL passed to Streamlink
-     * @return validated StreamlinkInspection
+     * @return validated StreamlinkStreamInfo
      */
-    public StreamlinkInspection parse(String rawJson, String targetUrl) {
+    public StreamlinkStreamInfo parse(String rawJson, String targetUrl) {
         return parse(rawJson, targetUrl, Locale.ENGLISH);
     }
 
@@ -57,9 +57,9 @@ public class StreamlinkJsonParser {
      * @param rawJson JSON string from streamlink standard output
      * @param targetUrl original URL passed to Streamlink
      * @param locale target locale for localized exceptions
-     * @return validated StreamlinkInspection
+     * @return validated StreamlinkStreamInfo
      */
-    public StreamlinkInspection parse(String rawJson, String targetUrl, Locale locale) {
+    public StreamlinkStreamInfo parse(String rawJson, String targetUrl, Locale locale) {
         Locale targetLocale = locale != null ? locale : Locale.ENGLISH;
 
         if (rawJson == null || rawJson.isBlank()) {
@@ -91,13 +91,13 @@ public class StreamlinkJsonParser {
             }
 
             // Delegate structure validation and parsing to the strategy
-            StreamlinkInspection inspection = strategy.parse(rootNode, targetUrl, targetLocale);
+            StreamlinkStreamInfo streamInfo = strategy.parse(rootNode, targetUrl, targetLocale);
             log.debug("Successfully parsed inspection for plugin='{}', id='{}', stream qualities={}",
-                    inspection.plugin(),
-                    inspection.metadata() != null ? inspection.metadata().id() : "unknown",
-                    inspection.streams() != null ? inspection.streams().keySet() : "none");
+                    streamInfo.plugin(),
+                    streamInfo.metadata() != null ? streamInfo.metadata().id() : "unknown",
+                    streamInfo.streams() != null ? streamInfo.streams().keySet() : "none");
 
-            return inspection;
+            return streamInfo;
         } catch (StreamlinkException e) {
             throw e;
         } catch (JsonProcessingException e) {

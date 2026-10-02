@@ -4,9 +4,6 @@ import com.ggar.stvr.catalog.api.AddChannelCommandHandler;
 import com.ggar.stvr.catalog.api.AddChannelCommandHandler.AddChannelCommand;
 import com.ggar.stvr.catalog.api.AddChannelCommandHandler.ChannelDto;
 import com.ggar.stvr.catalog.api.exception.DuplicateChannelException;
-import com.ggar.stvr.catalog.api.exception.InvalidChannelUrlException;
-import com.ggar.stvr.catalog.api.exception.UnsupportedPlatformException;
-import com.ggar.stvr.catalog.api.inspector.ChannelInspectionResult;
 import com.ggar.stvr.catalog.entities.ChannelId;
 import com.ggar.stvr.catalog.entities.ChannelName;
 import com.ggar.stvr.catalog.entities.ChannelUrl;
@@ -16,23 +13,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Generic contract test suite for UC-CAT-01: Add Channel.
- * Can be executed against mocked units, real database integration, or load test suites.
+ * Contract test suite defining the expected atomic behavior of AddChannelCommandHandler.
  */
 public abstract class AddChannelContractTest {
 
     protected abstract AddChannelCommandHandler getHandler();
-
-    /**
-     * Configures the inspector environment with mock/stub inspection result for the given URL.
-     */
-    protected abstract void registerInspectorResult(ChannelUrl url, ChannelInspectionResult result);
 
     /**
      * Verifies that the channel is persisted and associated with the given user in storage.
@@ -45,29 +34,27 @@ public abstract class AddChannelContractTest {
     protected abstract boolean channelExistsInStorage(ChannelUrl url);
 
     @Test
-    @DisplayName("Scenario: create channel using resolved inspector metadata")
-    void shouldCreateChannelUsingResolvedInspectorMetadata() {
+    @DisplayName("Scenario: create channel using atomic AddChannelCommand")
+    void shouldCreateChannelUsingAtomicCommand() {
         UserId userId = UserId.random();
         ChannelUrl url = ChannelUrl.of("https://twitch.tv/shroud");
+        ChannelName name = ChannelName.of("shroud");
 
-        registerInspectorResult(url, ChannelInspectionResult.online(
+        AddChannelCommand command = new AddChannelCommand(
+                userId,
+                url,
                 Platform.TWITCH,
                 "shroud",
-                ChannelName.of("shroud"),
-                "VALORANT",
-                Set.of("1080p60", "720p60", "480p")
-        ));
+                name
+        );
 
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url)))
+        StepVerifier.create(getHandler().handle(command))
                 .assertNext(dto -> {
                     assertThat(dto.id()).isNotNull();
-                    assertThat(dto.name()).isEqualTo(ChannelName.of("shroud"));
+                    assertThat(dto.name()).isEqualTo(name);
                     assertThat(dto.url()).isEqualTo(url);
                     assertThat(dto.platform()).isEqualTo(Platform.TWITCH);
                     assertThat(dto.isFavorite()).isFalse();
-                    assertThat(dto.isLive()).isTrue();
-                    assertThat(dto.category()).isEqualTo("VALORANT");
-                    assertThat(dto.availableQualities()).containsExactlyInAnyOrder("1080p60", "720p60", "480p");
                     assertThat(isChannelAssociatedWithUser(userId, dto.id())).isTrue();
                 })
                 .verifyComplete();
@@ -76,118 +63,60 @@ public abstract class AddChannelContractTest {
     }
 
     @Test
-    @DisplayName("Scenario: use custom name override when provided by user")
-    void shouldUseCustomNameOverrideWhenProvidedByUser() {
+    @DisplayName("Scenario: persist channels across multiple platforms")
+    void shouldPersistChannelsAcrossMultiplePlatforms() {
         UserId userId = UserId.random();
-        ChannelUrl url = ChannelUrl.of("https://twitch.tv/tarik");
-        ChannelName customName = ChannelName.of("My Favorite Tarik");
+        ChannelUrl ytUrl = ChannelUrl.of("https://youtube.com/live/ch1");
+        ChannelUrl kickUrl = ChannelUrl.of("https://kick.com/xqc");
 
-        registerInspectorResult(url, ChannelInspectionResult.offline(
-                Platform.TWITCH,
-                "tarik",
-                ChannelName.of("tarik")
-        ));
-
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url, customName)))
-                .assertNext(dto -> {
-                    assertThat(dto.name()).isEqualTo(customName);
-                    assertThat(dto.platform()).isEqualTo(Platform.TWITCH);
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Scenario: capture initial live status and qualities when streaming")
-    void shouldCaptureInitialLiveStatusAndQualitiesWhenChannelIsCurrentlyStreaming() {
-        UserId userId = UserId.random();
-        ChannelUrl url = ChannelUrl.of("https://youtube.com/live/ch1");
-
-        registerInspectorResult(url, ChannelInspectionResult.online(
+        AddChannelCommand ytCommand = new AddChannelCommand(
+                userId,
+                ytUrl,
                 Platform.YOUTUBE,
                 "ch1",
-                ChannelName.of("YT Stream"),
-                "Live News",
-                Set.of("1080p", "720p")
-        ));
-
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url)))
-                .assertNext(dto -> {
-                    assertThat(dto.isLive()).isTrue();
-                    assertThat(dto.category()).isEqualTo("Live News");
-                    assertThat(dto.availableQualities()).contains("1080p", "720p");
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Scenario: capture initial offline status when inspector reports offline")
-    void shouldCaptureInitialOfflineStatusWhenInspectorReportsOffline() {
-        UserId userId = UserId.random();
-        ChannelUrl url = ChannelUrl.of("https://kick.com/xqc");
-
-        registerInspectorResult(url, ChannelInspectionResult.offline(
+                ChannelName.of("YT Stream")
+        );
+        AddChannelCommand kickCommand = new AddChannelCommand(
+                userId,
+                kickUrl,
                 Platform.KICK,
                 "xqc",
                 ChannelName.of("xQc")
-        ));
+        );
 
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url)))
+        StepVerifier.create(getHandler().handle(ytCommand))
                 .assertNext(dto -> {
-                    assertThat(dto.isLive()).isFalse();
-                    assertThat(dto.category()).isNull();
-                    assertThat(dto.availableQualities()).isEmpty();
+                    assertThat(dto.platform()).isEqualTo(Platform.YOUTUBE);
+                    assertThat(dto.name()).isEqualTo(ChannelName.of("YT Stream"));
+                })
+                .verifyComplete();
+
+        StepVerifier.create(getHandler().handle(kickCommand))
+                .assertNext(dto -> {
+                    assertThat(dto.platform()).isEqualTo(Platform.KICK);
+                    assertThat(dto.name()).isEqualTo(ChannelName.of("xQc"));
                 })
                 .verifyComplete();
     }
 
     @Test
-    @DisplayName("Scenario: fallback to custom platform when no inspector supports URL and custom name is present")
-    void shouldFallbackToCustomPlatformWhenNoInspectorSupportsUrlAndCustomNameIsPresent() {
+    @DisplayName("Scenario: throw NullPointerException when required fields are missing")
+    void shouldThrowExceptionWhenRequiredFieldsAreMissing() {
         UserId userId = UserId.random();
-        ChannelUrl url = ChannelUrl.of("https://local.lan/live/cam.m3u8");
-        ChannelName customName = ChannelName.of("Security Cam");
+        ChannelUrl url = ChannelUrl.of("https://twitch.tv/ninja");
+        ChannelName name = ChannelName.of("Ninja");
 
-        // No inspector result registered -> unsupported URL
+        assertThatThrownBy(() -> new AddChannelCommand(null, url, Platform.TWITCH, "ninja", name))
+                .isInstanceOf(NullPointerException.class);
 
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url, customName)))
-                .assertNext(dto -> {
-                    assertThat(dto.platform()).isEqualTo(Platform.CUSTOM);
-                    assertThat(dto.name()).isEqualTo(customName);
-                    assertThat(dto.isLive()).isFalse();
-                    assertThat(isChannelAssociatedWithUser(userId, dto.id())).isTrue();
-                })
-                .verifyComplete();
-    }
+        assertThatThrownBy(() -> new AddChannelCommand(userId, null, Platform.TWITCH, "ninja", name))
+                .isInstanceOf(NullPointerException.class);
 
-    @Test
-    @DisplayName("Scenario: throw UnsupportedPlatformException when no inspector supports URL and no custom name")
-    void shouldThrowUnsupportedPlatformExceptionWhenNoInspectorSupportsUrlAndNoCustomName() {
-        UserId userId = UserId.random();
-        ChannelUrl url = ChannelUrl.of("https://unsupported.service.com/stream");
+        assertThatThrownBy(() -> new AddChannelCommand(userId, url, null, "ninja", name))
+                .isInstanceOf(NullPointerException.class);
 
-        // No inspector result registered and no custom name
-
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url)))
-                .expectErrorMatches(throwable ->
-                        throwable instanceof UnsupportedPlatformException &&
-                        ((UnsupportedPlatformException) throwable).getUrl().equals(url)
-                )
-                .verify();
-    }
-
-    @Test
-    @DisplayName("Scenario: throw InvalidChannelUrlException when URL is blank or malformed")
-    void shouldThrowExceptionWhenUrlIsBlankOrMalformed() {
-        UserId userId = UserId.random();
-
-        assertThatThrownBy(() -> AddChannelCommand.of(userId, ""))
-                .isInstanceOf(InvalidChannelUrlException.class);
-
-        assertThatThrownBy(() -> AddChannelCommand.of(userId, "   "))
-                .isInstanceOf(InvalidChannelUrlException.class);
-
-        assertThatThrownBy(() -> AddChannelCommand.of(userId, "http://"))
-                .isInstanceOf(InvalidChannelUrlException.class);
+        assertThatThrownBy(() -> new AddChannelCommand(userId, url, Platform.TWITCH, "ninja", null))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
@@ -195,20 +124,23 @@ public abstract class AddChannelContractTest {
     void shouldThrowExceptionWhenChannelAlreadyExistsForUser() {
         UserId userId = UserId.random();
         ChannelUrl url = ChannelUrl.of("https://twitch.tv/duplicate_streamer");
+        ChannelName name = ChannelName.of("Duplicate");
 
-        registerInspectorResult(url, ChannelInspectionResult.offline(
+        AddChannelCommand command = new AddChannelCommand(
+                userId,
+                url,
                 Platform.TWITCH,
                 "duplicate_streamer",
-                ChannelName.of("Duplicate")
-        ));
+                name
+        );
 
         // First add succeeds
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url)))
+        StepVerifier.create(getHandler().handle(command))
                 .expectNextCount(1)
                 .verifyComplete();
 
         // Second add by same user fails
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userId, url)))
+        StepVerifier.create(getHandler().handle(command))
                 .expectErrorMatches(throwable ->
                         throwable instanceof DuplicateChannelException &&
                         ((DuplicateChannelException) throwable).getUserId().equals(userId) &&
@@ -223,14 +155,17 @@ public abstract class AddChannelContractTest {
         UserId userA = UserId.random();
         UserId userB = UserId.random();
         ChannelUrl url = ChannelUrl.of("https://twitch.tv/only_for_user_a");
+        ChannelName name = ChannelName.of("User A Channel");
 
-        registerInspectorResult(url, ChannelInspectionResult.offline(
+        AddChannelCommand commandA = new AddChannelCommand(
+                userA,
+                url,
                 Platform.TWITCH,
                 "only_for_user_a",
-                ChannelName.of("User A Channel")
-        ));
+                name
+        );
 
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userA, url)))
+        StepVerifier.create(getHandler().handle(commandA))
                 .assertNext(dto -> {
                     assertThat(isChannelAssociatedWithUser(userA, dto.id())).isTrue();
                     assertThat(isChannelAssociatedWithUser(userB, dto.id())).isFalse();
@@ -244,23 +179,31 @@ public abstract class AddChannelContractTest {
         UserId userA = UserId.random();
         UserId userB = UserId.random();
         ChannelUrl sharedUrl = ChannelUrl.of("https://twitch.tv/ibai");
+        ChannelName name = ChannelName.of("Ibai");
 
-        registerInspectorResult(sharedUrl, ChannelInspectionResult.online(
+        AddChannelCommand commandA = new AddChannelCommand(
+                userA,
+                sharedUrl,
                 Platform.TWITCH,
                 "ibai",
-                ChannelName.of("Ibai"),
-                "Charlando",
-                Set.of("1080p60")
-        ));
+                name
+        );
+        AddChannelCommand commandB = new AddChannelCommand(
+                userB,
+                sharedUrl,
+                Platform.TWITCH,
+                "ibai",
+                name
+        );
 
         // User A adds the channel
         ChannelDto[] userADto = new ChannelDto[1];
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userA, sharedUrl)))
+        StepVerifier.create(getHandler().handle(commandA))
                 .consumeNextWith(dto -> userADto[0] = dto)
                 .verifyComplete();
 
         // User B adds the SAME channel URL
-        StepVerifier.create(getHandler().handle(new AddChannelCommand(userB, sharedUrl)))
+        StepVerifier.create(getHandler().handle(commandB))
                 .assertNext(dto -> {
                     // Reuses the exact same channel entity ID
                     assertThat(dto.id()).isEqualTo(userADto[0].id());

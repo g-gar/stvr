@@ -89,15 +89,6 @@ public class ListUserChannelsMockedTest extends ListUserChannelsContractTest {
                 return false;
             }
         }
-        if (filter.isLive() != null && ch.isLive() != filter.isLive()) {
-            return false;
-        }
-        if (filter.category() != null && !filter.category().equalsIgnoreCase(ch.category())) {
-            return false;
-        }
-        if (!filter.tags().isEmpty() && !ch.tags().containsAll(filter.tags())) {
-            return false;
-        }
         return true;
     }
 

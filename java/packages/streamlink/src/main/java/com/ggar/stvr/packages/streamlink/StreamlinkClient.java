@@ -5,7 +5,7 @@ import com.ggar.stvr.packages.streamlink.exception.StreamlinkExecutionException;
 import com.ggar.stvr.packages.streamlink.executor.CommandExecutor;
 import com.ggar.stvr.packages.streamlink.executor.CommandResult;
 import com.ggar.stvr.packages.streamlink.i18n.StreamlinkMessages;
-import com.ggar.stvr.packages.streamlink.model.StreamlinkInspection;
+import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamInfo;
 import com.ggar.stvr.packages.streamlink.parser.StreamlinkJsonParser;
 import com.ggar.stvr.packages.streamlink.session.StreamlinkSession;
 import lombok.Getter;
@@ -63,9 +63,9 @@ public class StreamlinkClient {
      * The platform is automatically resolved from the URL.
      *
      * @param url target stream URL
-     * @return Mono emitting the parsed StreamlinkInspection
+     * @return Mono emitting the parsed StreamlinkStreamInfo
      */
-    public Mono<StreamlinkInspection> inspect(String url) {
+    public Mono<StreamlinkStreamInfo> inspect(String url) {
         return inspect(StreamlinkCommand.of(url), this.defaultLocale);
     }
 
@@ -75,9 +75,9 @@ public class StreamlinkClient {
      *
      * @param url target stream URL
      * @param locale locale for translating error messages and exceptions
-     * @return Mono emitting the parsed StreamlinkInspection
+     * @return Mono emitting the parsed StreamlinkStreamInfo
      */
-    public Mono<StreamlinkInspection> inspect(String url, Locale locale) {
+    public Mono<StreamlinkStreamInfo> inspect(String url, Locale locale) {
         return inspect(StreamlinkCommand.of(url), locale);
     }
 
@@ -85,9 +85,9 @@ public class StreamlinkClient {
      * Inspects a channel/stream URL by running Streamlink in JSON mode using the client's default locale.
      *
      * @param command command specification (JSON flag will be enabled automatically)
-     * @return Mono emitting the parsed StreamlinkInspection
+     * @return Mono emitting the parsed StreamlinkStreamInfo
      */
-    public Mono<StreamlinkInspection> inspect(StreamlinkCommand command) {
+    public Mono<StreamlinkStreamInfo> inspect(StreamlinkCommand command) {
         return inspect(command, this.defaultLocale);
     }
 
@@ -97,9 +97,9 @@ public class StreamlinkClient {
      *
      * @param command command specification (JSON flag will be enabled automatically)
      * @param locale locale for translating error messages and exceptions
-     * @return Mono emitting the parsed StreamlinkInspection
+     * @return Mono emitting the parsed StreamlinkStreamInfo
      */
-    public Mono<StreamlinkInspection> inspect(StreamlinkCommand command, Locale locale) {
+    public Mono<StreamlinkStreamInfo> inspect(StreamlinkCommand command, Locale locale) {
         Locale targetLocale = locale != null ? locale : this.defaultLocale;
         Objects.requireNonNull(command, StreamlinkMessages.get("error.null_arg", targetLocale, "command"));
 
@@ -120,12 +120,12 @@ public class StreamlinkClient {
                     }
 
                     return Mono.fromCallable(() -> {
-                        StreamlinkInspection inspection = parser.parse(result.stdout(), jsonCommand.getUrl(), targetLocale);
+                        StreamlinkStreamInfo streamInfo = parser.parse(result.stdout(), jsonCommand.getUrl(), targetLocale);
                         log.info("Inspection resolved successfully: plugin='{}', author='{}', qualities={}",
-                                inspection.plugin(),
-                                inspection.metadata() != null ? inspection.metadata().author() : "unknown",
-                                inspection.streams() != null ? inspection.streams().keySet() : "none");
-                        return inspection;
+                                streamInfo.plugin(),
+                                streamInfo.metadata() != null ? streamInfo.metadata().author() : "unknown",
+                                streamInfo.streams() != null ? streamInfo.streams().keySet() : "none");
+                        return streamInfo;
                     });
                 });
     }
