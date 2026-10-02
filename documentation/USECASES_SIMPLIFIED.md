@@ -14,34 +14,31 @@ This document defines the actionable, testable Use Cases across all bounded cont
   2. Verify that this channel URL is not already added by this user (`DuplicateChannelException`).
   3. Check if channel URL already exists globally in the catalog (i.e. added by another user):
      - If it exists: reuse existing `Channel` entity, establish the `(:User)-[:TRACKS]->(:Channel)` association for this `userId`, and return `ChannelDto`.
-     - If it does not exist: resolve channel metadata via domain port `ChannelInspectorFactory.getInspector(url)` (or pluggable `PlatformMetadataProvider<T extends ChannelMetadata>`):
-       - Identify streaming platform and streamer/channel slug.
-       - Extract strongly-typed `ChannelMetadata` (stream title/category, initial live status, tags, and available qualities).
-  4. If no inspector supports the URL (or inspection indicates unsupported platform):
-     - If user provided `customName`, fallback to platform `CUSTOM` with empty `GenericChannelMetadata`.
+     - If it does not exist: resolve channel identity via domain port `ChannelResolverFactory.getResolver(url)`:
+       - Identify streaming platform, streamer/channel slug, and default channel name.
+  4. If no resolver supports the URL:
+     - If user provided `customName`, fallback to platform `CUSTOM` with user's custom name.
      - Otherwise, throw `UnsupportedPlatformException`.
-  5. Create and persist `Channel` domain model (`id`, `url`, `platform`, `slug`, `name`, `metadata`) with resolved platform, slug, name, and initial presence state.
+  5. Create and persist `Channel` domain model (`id`, `url`, `platform`, `slug`, `name`) with resolved platform, slug, and name.
   6. Associate channel with user (`(:User)-[:TRACKS]->(:Channel)`).
-  7. Return `ChannelDto` (containing resolved `ChannelMetadata`).
+  7. Return `ChannelDto` (containing resolved channel identity and favorite status).
 - **Error Cases & Invariants:**
   - Blank or malformed URL -> throws `InvalidChannelUrlException`.
   - Duplicate URL for same user -> throws `DuplicateChannelException`.
   - Unsupported URL with no custom name fallback -> throws `UnsupportedPlatformException`.
   - Multiple users may track the exact same channel; the global channel entity is shared to avoid redundant polling.
-  - Channel inspection is handled via pluggable domain port `ChannelInspector` (with implementations such as Streamlink, native platform APIs, etc.).
-  - Channel metadata is modeled as an open-closed domain hierarchy (`ChannelMetadata` abstract base class, `GenericChannelMetadata`, and typed platform extensions via `PlatformMetadataProvider<T>`) keeping the core domain pure and free from external database or API dependencies.
+  - Channel resolution is handled via pluggable domain port `ChannelResolver`.
+  - Channel identity is modeled purely around stable attributes (`id`, `url`, `platform`, `slug`, `name`), keeping volatile live stream data decoupled in `core:inspection`.
 - **TDD Test Scenarios:**
-  - `shouldCreateChannelUsingResolvedInspectorMetadata()`
+  - `shouldCreateChannelUsingResolvedIdentity()`
   - `shouldUseCustomNameOverrideWhenProvidedByUser()`
-  - `shouldCaptureInitialLiveStatusAndQualitiesWhenChannelIsCurrentlyStreaming()`
-  - `shouldCaptureInitialOfflineStatusWhenInspectorReportsOffline()`
-  - `shouldFallbackToCustomPlatformWhenNoInspectorSupportsUrlAndCustomNameIsPresent()`
-  - `shouldThrowUnsupportedPlatformExceptionWhenNoInspectorSupportsUrlAndNoCustomName()`
+  - `shouldResolveAndPersistChannelsAcrossMultiplePlatforms()`
+  - `shouldFallbackToCustomPlatformWhenNoResolverSupportsUrlAndCustomNameIsPresent()`
+  - `shouldThrowUnsupportedPlatformExceptionWhenNoResolverSupportsUrlAndNoCustomName()`
   - `shouldThrowExceptionWhenUrlIsBlankOrMalformed()`
   - `shouldThrowExceptionWhenChannelAlreadyExistsForUser()`
   - `shouldSaveAndReturnChannelWithCorrectUserAssociation()`
   - `shouldAssociateExistingChannelWhenAddedByAnotherUser()`
-  - `shouldCreateAndValidateGenericChannelMetadata()`
   - `shouldCreateAndValidateChannelEntity()`
 
 ---
@@ -317,6 +314,24 @@ This document defines the actionable, testable Use Cases across all bounded cont
   - `shouldRejectLoginWhenUserDoesNotExist()`
 
 ---
+
+### UC-AUTH-03: Revoke Token (Logout)
+- **Actor:** Authenticated User
+- **Inputs:** `token: String`
+- **Primary Flow:**
+  1. Validate token structure, signature, and extract `jti` (JWT ID) and expiration.
+  2. Register `jti` in token revocation repository until token expiration.
+  3. Subsequent validations of this token must fail.
+  4. Return confirmation (boolean or empty completion).
+- **Error Cases:**
+  - Blank, malformed or invalid token signature -> throws `InvalidTokenException`.
+- **TDD Test Scenarios:**
+  - `shouldRevokeTokenSuccessfullyAndRejectSubsequentValidations()`
+  - `shouldRejectRevocationWhenTokenIsBlankOrMalformed()`
+  - `shouldHandleAlreadyExpiredOrInvalidTokenGracefully()`
+
+---
+
 
 ## 7. `packages:streamlink` (Streamlink JSON Inspector & Docker Process Runner)
 

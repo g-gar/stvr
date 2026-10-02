@@ -235,45 +235,4 @@ public abstract class ListUserChannelsContractTest {
                 .assertNext(ch -> assertThat(ch.name()).isEqualTo(ChannelName.of("Ibai Llanos")))
                 .verifyComplete();
     }
-
-    @Test
-    @DisplayName("Scenario: filter channels by live streaming status")
-    void shouldFilterByLiveStatusWhenSpecified() {
-        UserId userId = UserId.random();
-
-        UserChannelListItemDto onlineCh = new UserChannelListItemDto(
-                ChannelId.random(),
-                ChannelName.of("Live Broadcaster"),
-                ChannelUrl.of("https://twitch.tv/live"),
-                Platform.TWITCH,
-                false,
-                true,
-                "Just Chatting",
-                Set.of("esports")
-        );
-        UserChannelListItemDto offlineCh = new UserChannelListItemDto(
-                ChannelId.random(),
-                ChannelName.of("Sleeping Streamer"),
-                ChannelUrl.of("https://twitch.tv/sleep"),
-                Platform.TWITCH,
-                false,
-                false,
-                null,
-                Set.of()
-        );
-
-        setupChannelsForUser(userId, List.of(onlineCh, offlineCh));
-
-        ChannelFilter filter = ChannelFilter.builder()
-                .isLive(true)
-                .build();
-
-        StepVerifier.create(getHandler().handle(new ListUserChannelsQuery(userId, filter)))
-                .assertNext(ch -> {
-                    assertThat(ch.name()).isEqualTo(ChannelName.of("Live Broadcaster"));
-                    assertThat(ch.isLive()).isTrue();
-                    assertThat(ch.category()).isEqualTo("Just Chatting");
-                })
-                .verifyComplete();
-    }
 }

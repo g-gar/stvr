@@ -3,7 +3,7 @@ package com.ggar.stvr.packages.streamlink.parser;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkNoStreamsException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkParseException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkPluginNotFoundException;
-import com.ggar.stvr.packages.streamlink.model.StreamlinkInspection;
+import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamInfo;
 import com.ggar.stvr.packages.streamlink.plugins.kick.KickStreamlinkException;
 import com.ggar.stvr.packages.streamlink.plugins.tiktok.TikTokStreamlinkException;
 import com.ggar.stvr.packages.streamlink.plugins.twitch.TwitchStreamlinkException;
@@ -52,7 +52,7 @@ class StreamlinkJsonParserTest {
                 }
                 """;
 
-        StreamlinkInspection inspection = parser.parse(json, "https://twitch.tv/ibai");
+        StreamlinkStreamInfo inspection = parser.parse(json, "https://twitch.tv/ibai");
 
         assertThat(inspection).isNotNull();
         assertThat(inspection.plugin()).isEqualTo("twitch");

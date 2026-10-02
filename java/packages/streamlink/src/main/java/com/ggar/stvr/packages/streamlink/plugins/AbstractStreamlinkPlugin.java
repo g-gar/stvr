@@ -7,7 +7,7 @@ import com.ggar.stvr.packages.streamlink.exception.StreamlinkNoStreamsException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkParseException;
 import com.ggar.stvr.packages.streamlink.exception.StreamlinkPluginException;
 import com.ggar.stvr.packages.streamlink.i18n.StreamlinkMessages;
-import com.ggar.stvr.packages.streamlink.model.StreamlinkInspection;
+import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamInfo;
 import com.ggar.stvr.packages.streamlink.model.StreamlinkStreamDetails;
 
 import java.util.Locale;
@@ -36,13 +36,13 @@ public abstract class AbstractStreamlinkPlugin implements StreamlinkPlugin {
     }
 
     @Override
-    public StreamlinkInspection parse(JsonNode rootNode, String targetUrl, Locale locale) {
+    public StreamlinkStreamInfo parse(JsonNode rootNode, String targetUrl, Locale locale) {
         validateStructure(rootNode, locale);
 
         try {
-            StreamlinkInspection inspection = objectMapper.treeToValue(rootNode, StreamlinkInspection.class);
-            validateStreams(inspection, targetUrl, locale);
-            return inspection;
+            StreamlinkStreamInfo streamInfo = objectMapper.treeToValue(rootNode, StreamlinkStreamInfo.class);
+            validateStreams(streamInfo, targetUrl, locale);
+            return streamInfo;
         } catch (StreamlinkNoStreamsException | StreamlinkParseException e) {
             throw e;
         } catch (JsonProcessingException e) {
@@ -64,12 +64,12 @@ public abstract class AbstractStreamlinkPlugin implements StreamlinkPlugin {
         }
     }
 
-    protected void validateStreams(StreamlinkInspection inspection, String targetUrl, Locale locale) {
-        if (!inspection.hasStreams()) {
+    protected void validateStreams(StreamlinkStreamInfo streamInfo, String targetUrl, Locale locale) {
+        if (!streamInfo.hasStreams()) {
             throw new StreamlinkNoStreamsException(targetUrl != null ? targetUrl : "", StreamlinkMessages.get("error.no_qualities", locale), locale);
         }
 
-        for (Map.Entry<String, StreamlinkStreamDetails> entry : inspection.streams().entrySet()) {
+        for (Map.Entry<String, StreamlinkStreamDetails> entry : streamInfo.streams().entrySet()) {
             StreamlinkStreamDetails details = entry.getValue();
             if (details == null || (isBlank(details.url()) && isBlank(details.master()))) {
                 throw new StreamlinkParseException(

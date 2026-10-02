@@ -21,23 +21,6 @@ public class Channel {
     private final Platform platform;
     private final String slug;
     private final ChannelName name;
-    private ChannelMetadata metadata;
-
-    public Channel(
-            ChannelId id,
-            ChannelUrl url,
-            Platform platform,
-            String slug,
-            ChannelName name,
-            ChannelMetadata metadata
-    ) {
-        this.id = Objects.requireNonNull(id, "ChannelId cannot be null");
-        this.url = Objects.requireNonNull(url, "ChannelUrl cannot be null");
-        this.platform = Objects.requireNonNull(platform, "Platform cannot be null");
-        this.slug = slug != null ? slug : "";
-        this.name = Objects.requireNonNull(name, "ChannelName cannot be null");
-        this.metadata = metadata != null ? metadata : GenericChannelMetadata.empty();
-    }
 
     public Channel(
             ChannelId id,
@@ -46,10 +29,10 @@ public class Channel {
             String slug,
             ChannelName name
     ) {
-        this(id, url, platform, slug, name, GenericChannelMetadata.empty());
-    }
-
-    public void updateMetadata(ChannelMetadata metadata) {
-        this.metadata = Objects.requireNonNull(metadata, "ChannelMetadata cannot be null");
+        this.id = Objects.requireNonNull(id, "ChannelId cannot be null");
+        this.url = Objects.requireNonNull(url, "ChannelUrl cannot be null");
+        this.platform = Objects.requireNonNull(platform, "Platform cannot be null");
+        this.slug = slug != null ? slug : "";
+        this.name = Objects.requireNonNull(name, "ChannelName cannot be null");
     }
 }

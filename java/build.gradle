@@ -15,7 +15,6 @@ ext {
 allprojects {
     group = project.path == ':' ? 'com.ggar.stvr' : (project.parent == rootProject ? "com.ggar.stvr.${project.name}" : "com.ggar.stvr${project.parent.path.replace(':', '.')}")
     version = '0.0.1-SNAPSHOT'
-    layout.buildDirectory.set(file("${rootDir}/.build/${project.path == ':' ? '_root_' : project.path.replace(':', '_')}"))
 }
 
 // Leaf modules (actual Java libraries)

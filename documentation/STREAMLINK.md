@@ -23,6 +23,11 @@ Rather than requiring developers to manually specify the streaming platform or t
   // Direct inspection and streaming via StreamlinkClient (zero command boilerplate)
   Mono<StreamlinkInspection> inspection = client.inspect("https://twitch.tv/ibai");
   Flux<byte[]> stream = client.stream("https://twitch.tv/ibai", "best");
+  StreamlinkSession session = client.openSession("https://twitch.tv/ibai", "best");
+
+  // Locale-aware execution (English default, Spanish or custom Locale selectable)
+  Mono<StreamlinkInspection> inspectionEs = client.inspect("https://twitch.tv/ibai", Locale.forLanguageTag("es"));
+  StreamlinkClient spanishClient = client.withLocale(Locale.forLanguageTag("es"));
 
   // Immediate immutable command creation
   StreamlinkCommand cmd = StreamlinkCommand.of("https://twitch.tv/ibai");
@@ -126,61 +131,78 @@ public interface StreamlinkPlugin {
 
 ### 2.5 Robust Logging and Internationalization (i18n)
 - **Logging via SLF4J:** High-level actions, process executions, latency measurements, and warning/error scenarios are recorded with structured debug and info logs.
-- **Internationalization (i18n):** User-facing error messages and exceptions are internationalized using standard resource bundles (`messages_en.properties`, `messages_es.properties`). Callers can specify the desired `Locale` globally on `StreamlinkClient` or per invocation.
+- **Internationalization (i18n):** User-facing error messages and exceptions are internationalized using standard resource bundles located at `src/main/resources/i18n/streamlink-messages[_<lang>].properties` (`streamlink-messages_en.properties`, `streamlink-messages_es.properties`, with fallback `streamlink-messages.properties`). Callers can specify the desired `Locale` globally on `StreamlinkClient` or per invocation.
 
 ---
 
 ## 3. Package Structure in `java/packages/streamlink`
 
 ```text
-com.ggar.stvr.packages.streamlink/
-├── StreamlinkClient.java                     # Main reactive facade client
-├── command/
-│   ├── StreamlinkCommand.java               # Immutable command specification
-│   └── AbstractStreamlinkCommandBuilder.java# Base builder for shared options (--http-header, proxy, etc.)
-├── executor/
-│   ├── CommandExecutor.java                 # Execution port / SPI
-│   ├── CommandResult.java                   # Immutable record (exitCode, stdout, stderr)
-│   └── LocalProcessExecutor.java            # Standard reactive local process runner
-├── session/
-│   ├── StreamlinkSession.java               # Streaming session port (data, logs, result, cancel)
-│   └── LocalProcessStreamlinkSession.java   # Concurrent OS process implementation
-├── i18n/
-│   └── StreamlinkMessages.java              # Internationalization message resolver
-├── model/
-│   ├── StreamlinkInspection.java            # Top-level inspection model (--json)
-│   ├── StreamlinkMetadata.java              # Channel / stream metadata
-│   └── StreamlinkStreamDetails.java         # Technical details per quality/variant
-├── parser/
-│   └── StreamlinkJsonParser.java            # Lightweight JSON orchestrator
-├── plugins/
-│   ├── StreamlinkPluginParser.java          # Strategy interface for plugin parsing
-│   ├── AbstractStreamlinkPluginParser.java  # Common structural validation template
-│   ├── StreamlinkPluginParserRegistry.java  # Strategy factory / registry
-│   ├── generic/
-│   │   ├── GenericCommandBuilder.java       # Builder for generic URLs
-│   │   └── GenericPluginParser.java         # Fallback parsing strategy
-│   ├── twitch/
-│   │   ├── TwitchCommandBuilder.java        # Typed Twitch builder
-│   │   ├── TwitchPluginParser.java          # Twitch parsing strategy
-│   │   └── TwitchStreamlinkException.java   # Typed Twitch exception
-│   ├── kick/
-│   │   ├── KickCommandBuilder.java          # Typed Kick builder
-│   │   ├── KickPluginParser.java            # Kick parsing strategy
-│   │   └── KickStreamlinkException.java     # Typed Kick exception
-│   ├── youtube/
-│   │   ├── YouTubeCommandBuilder.java       # Typed YouTube builder
-│   │   ├── YouTubePluginParser.java         # YouTube parsing strategy
-│   │   └── YouTubeStreamlinkException.java  # Typed YouTube exception
-│   └── tiktok/
-│       ├── TikTokCommandBuilder.java        # Typed TikTok builder
-│       ├── TikTokPluginParser.java          # TikTok parsing strategy
-│       └── TikTokStreamlinkException.java   # Typed TikTok exception
-└── exception/
-    ├── StreamlinkException.java             # Base unchecked exception
-    ├── StreamlinkExecutionException.java    # CLI process failure (exit code != 0)
-    ├── StreamlinkParseException.java        # Malformed JSON or structural error
-    ├── StreamlinkNoStreamsException.java    # Offline channel or no streams available
-    ├── StreamlinkPluginNotFoundException.java # Unsupported URL
-    └── StreamlinkPluginException.java       # Base for plugin-specific errors
+src/
+├── main/
+│   ├── java/com/ggar/stvr/packages/streamlink/
+│   │   ├── StreamlinkClient.java                     # Main reactive facade client
+│   │   ├── command/
+│   │   │   ├── StreamlinkCommand.java               # Immutable command specification
+│   │   │   └── AbstractStreamlinkCommandBuilder.java# Base builder for shared options (--http-header, proxy, etc.)
+│   │   ├── executor/
+│   │   │   ├── CommandExecutor.java                 # Execution port / SPI
+│   │   │   ├── CommandResult.java                   # Immutable record (exitCode, stdout, stderr)
+│   │   │   └── LocalProcessExecutor.java            # Standard reactive local process runner
+│   │   ├── session/
+│   │   │   ├── StreamlinkSession.java               # Streaming session port (data, logs, result, cancel)
+│   │   │   └── LocalProcessStreamlinkSession.java   # Concurrent OS process implementation
+│   │   ├── i18n/
+│   │   │   └── StreamlinkMessages.java              # Internationalization message resolver
+│   │   ├── model/
+│   │   │   ├── StreamlinkInspection.java            # Top-level inspection model (--json)
+│   │   │   ├── StreamlinkMetadata.java              # Channel / stream metadata
+│   │   │   └── StreamlinkStreamDetails.java         # Technical details per quality/variant
+│   │   ├── parser/
+│   │   │   └── StreamlinkJsonParser.java            # Lightweight JSON orchestrator
+│   │   ├── plugins/
+│   │   │   ├── StreamlinkPlugin.java                # Strategy interface for plugin encapsulation
+│   │   │   ├── AbstractStreamlinkPlugin.java        # Common structural validation template
+│   │   │   ├── StreamlinkPluginRegistry.java        # Strategy factory / registry
+│   │   │   ├── generic/
+│   │   │   │   ├── GenericCommandBuilder.java       # Builder for generic URLs
+│   │   │   │   └── GenericPlugin.java               # Fallback plugin strategy
+│   │   │   ├── twitch/
+│   │   │   │   ├── TwitchCommandBuilder.java        # Typed Twitch builder
+│   │   │   │   ├── TwitchPlugin.java                # Twitch plugin strategy
+│   │   │   │   └── TwitchStreamlinkException.java   # Typed Twitch exception
+│   │   │   ├── kick/
+│   │   │   │   ├── KickCommandBuilder.java          # Typed Kick builder
+│   │   │   │   ├── KickPlugin.java                  # Kick plugin strategy
+│   │   │   │   └── KickStreamlinkException.java     # Typed Kick exception
+│   │   │   ├── youtube/
+│   │   │   │   ├── YouTubeCommandBuilder.java       # Typed YouTube builder
+│   │   │   │   ├── YouTubePlugin.java               # YouTube plugin strategy
+│   │   │   │   └── YouTubeStreamlinkException.java  # Typed YouTube exception
+│   │   │   └── tiktok/
+│   │   │       ├── TikTokCommandBuilder.java        # Typed TikTok builder
+│   │   │       ├── TikTokPlugin.java                # TikTok plugin strategy
+│   │   │       └── TikTokStreamlinkException.java   # Typed TikTok exception
+│   │   └── exception/
+│   │       ├── StreamlinkException.java             # Base unchecked exception
+│   │       ├── StreamlinkExecutionException.java    # CLI process failure (exit code != 0)
+│   │       ├── StreamlinkParseException.java        # Malformed JSON or structural error
+│   │       ├── StreamlinkNoStreamsException.java    # Offline channel or no streams available
+│   │       ├── StreamlinkPluginNotFoundException.java # Unsupported URL
+│   │       └── StreamlinkPluginException.java       # Base for plugin-specific errors
+│   └── resources/
+│       └── i18n/
+│           ├── streamlink-messages.properties       # Default message bundle (English)
+│           ├── streamlink-messages_en.properties    # English translation bundle
+│           └── streamlink-messages_es.properties    # Spanish translation bundle
 ```
+
+---
+
+## 4. Testing & Verification Strategy
+
+The architecture guarantees high testability across all operational dimensions:
+1. **Zero Native Dependency Testing:** Consuming code and module unit tests do not require Python or Streamlink installed on the developer or CI machine. Tests mock `CommandExecutor` and return realistic JSON outputs or reactive byte streams.
+2. **Session Lifecycle & Process Concurrency:** `LocalProcessStreamlinkSessionTest` verifies concurrent `stdout` and `stderr` processing, non-blocking pipe draining to prevent OS buffer deadlocks, graceful process termination, and forced SIGKILL cancellation.
+3. **i18n & Message Consistency:** `StreamlinkMessagesTest` validates that all keys across supported languages (English and Spanish) resolve properly with parameter placeholders and graceful fallback.
+4. **Strategy Pattern Isolation:** Each platform strategy is verified independently, guaranteeing that platform regex matching, builder flags, and error parsing remain strictly encapsulated.
