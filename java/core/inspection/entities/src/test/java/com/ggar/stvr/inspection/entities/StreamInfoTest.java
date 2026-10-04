@@ -18,10 +18,10 @@ class StreamInfoTest {
     @DisplayName("Should create offline stream info with default values")
     void shouldCreateOfflineStreamInfo() {
         ChannelUrl url = ChannelUrl.of("https://twitch.tv/example");
-        StreamInfo info = StreamInfo.offline(url, Platform.TWITCH);
+        StreamInfo info = StreamInfo.offline(url, Platform.of("twitch"));
 
         assertThat(info.getChannelUrl()).isEqualTo(url);
-        assertThat(info.getPlatform()).isEqualTo(Platform.TWITCH);
+        assertThat(info.getPlatform()).isEqualTo(Platform.of("twitch"));
         assertThat(info.isLive()).isFalse();
         assertThat(info.getTitle()).isEmpty();
         assertThat(info.getCategory()).isEmpty();
@@ -38,7 +38,7 @@ class StreamInfoTest {
 
         StreamInfo info = StreamInfo.builder()
                 .channelUrl(url)
-                .platform(Platform.KICK)
+                .platform(Platform.of("kick"))
                 .live(true)
                 .title("Playing Elden Ring")
                 .category("Action RPG")
@@ -49,7 +49,7 @@ class StreamInfoTest {
                 .build();
 
         assertThat(info.getChannelUrl()).isEqualTo(url);
-        assertThat(info.getPlatform()).isEqualTo(Platform.KICK);
+        assertThat(info.getPlatform()).isEqualTo(Platform.of("kick"));
         assertThat(info.isLive()).isTrue();
         assertThat(info.getTitle()).isEqualTo("Playing Elden Ring");
         assertThat(info.getCategory()).isEqualTo("Action RPG");
@@ -62,8 +62,34 @@ class StreamInfoTest {
     @Test
     @DisplayName("Should throw exception if channelUrl is null")
     void shouldThrowWhenChannelUrlMissing() {
-        assertThatThrownBy(() -> StreamInfo.builder().platform(Platform.TWITCH).build())
+        assertThatThrownBy(() -> StreamInfo.builder().platform(Platform.of("twitch")).build())
                 .isInstanceOf(NullPointerException.class)
                 .hasMessageContaining("channelUrl");
     }
+
+    record SampleStreamMetadata(int viewers, String resolution) implements com.ggar.stvr.catalog.entities.PlatformMetadata {
+        @Override
+        public Map<String, Object> asMap() {
+            return Map.of("viewers", viewers, "resolution", resolution);
+        }
+    }
+
+    @Test
+    @DisplayName("Should support typed PlatformMetadata on StreamInfo")
+    void shouldSupportTypedPlatformMetadata() {
+        ChannelUrl url = ChannelUrl.of("https://twitch.tv/streamer");
+        SampleStreamMetadata custom = new SampleStreamMetadata(5200, "1080p60");
+
+        StreamInfo info = StreamInfo.builder()
+                .channelUrl(url)
+                .platform(Platform.of("twitch"))
+                .live(true)
+                .platformMetadata(custom)
+                .build();
+
+        assertThat(info.getMetadata(SampleStreamMetadata.class)).contains(custom);
+        assertThat(info.getMetadata()).containsEntry("viewers", 5200);
+        assertThat(info.getMetadata()).containsEntry("resolution", "1080p60");
+    }
 }
+

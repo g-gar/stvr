@@ -44,12 +44,12 @@ class InspectStreamQueryHandlerImplTest {
         InspectionPipeline pipeline = new InspectionPipeline(List.of(mockPlugin), "streamlink");
         InspectStreamQueryHandlerImpl handler = new InspectStreamQueryHandlerImpl(pipeline);
 
-        InspectStreamQuery query = new InspectStreamQuery(url, Platform.TWITCH);
+        InspectStreamQuery query = new InspectStreamQuery(url, Platform.of("twitch"));
 
         StepVerifier.create(handler.handle(query))
                 .assertNext((StreamInfo info) -> {
                     assertThat(info.getChannelUrl()).isEqualTo(url);
-                    assertThat(info.getPlatform()).isEqualTo(Platform.TWITCH);
+                    assertThat(info.getPlatform()).isEqualTo(Platform.of("twitch"));
                     assertThat(info.isLive()).isTrue();
                     assertThat(info.getTitle()).isEqualTo("Fortnite Tournament");
                     assertThat(info.getCategory()).isEqualTo("Fortnite");

@@ -80,7 +80,7 @@ public class StreamlinkJsonParser {
                 log.warn("Streamlink output contains error for URL '{}': {}", targetUrl, errorMsg);
 
                 if (errorMsg.contains("No playable streams found") || errorMsg.contains("No streams found")) {
-                    throw new StreamlinkNoStreamsException(targetUrl != null ? targetUrl : "", errorMsg, targetLocale);
+                    throw new StreamlinkNoStreamsException(targetUrl != null ? targetUrl : "", strategy.getName(), errorMsg, targetLocale);
                 }
                 if (errorMsg.contains("No plugin can handle URL")) {
                     throw new StreamlinkPluginNotFoundException(targetUrl != null ? targetUrl : "", errorMsg, targetLocale);

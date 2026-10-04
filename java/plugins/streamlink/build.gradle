@@ -1,0 +1,25 @@
+dependencies {
+    compileOnly project(':framework:plugin')
+    compileOnly project(':core:inspection:api')
+    compileOnly project(':core:inspection:entities')
+    compileOnly project(':core:catalog:entities')
+    compileOnly project(':core:streaming:api')
+    compileOnly project(':core:streaming:entities')
+    compileOnly 'org.slf4j:slf4j-api'
+    compileOnly 'io.projectreactor:reactor-core'
+
+    implementation project(':packages:streamlink')
+    implementation 'org.springframework:spring-webflux'
+
+    testImplementation project(':framework:plugin')
+    testImplementation project(':core:inspection:api')
+    testImplementation project(':core:inspection:entities')
+    testImplementation project(':core:catalog:entities')
+    testImplementation project(':core:streaming:api')
+    testImplementation project(':core:streaming:entities')
+    testImplementation 'io.projectreactor:reactor-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+}

@@ -1,0 +1,6 @@
+dependencies {
+    api 'org.slf4j:slf4j-api'
+    api 'io.projectreactor:reactor-core'
+
+    testImplementation 'io.projectreactor:reactor-test'
+}

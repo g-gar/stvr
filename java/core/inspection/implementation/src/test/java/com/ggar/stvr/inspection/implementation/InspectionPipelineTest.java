@@ -36,7 +36,7 @@ class InspectionPipelineTest {
 
         StreamInfo initial = StreamInfo.builder()
                 .channelUrl(ChannelUrl.of("https://twitch.tv/ninja"))
-                .platform(Platform.TWITCH)
+                .platform(Platform.of("twitch"))
                 .build();
 
         StepVerifier.create(pipeline.execute(initial))
@@ -68,7 +68,7 @@ class InspectionPipelineTest {
 
         StreamInfo initial = StreamInfo.builder()
                 .channelUrl(ChannelUrl.of("https://twitch.tv/ninja"))
-                .platform(Platform.TWITCH)
+                .platform(Platform.of("twitch"))
                 .build();
 
         StepVerifier.create(pipeline.execute(initial))
@@ -93,7 +93,7 @@ class InspectionPipelineTest {
         }) {
             @Override
             public boolean supports(StreamInfo info) {
-                return info.getPlatform() == Platform.TWITCH;
+                return Platform.of("twitch").equals(info.getPlatform());
             }
         };
 
@@ -103,7 +103,7 @@ class InspectionPipelineTest {
         }) {
             @Override
             public boolean supports(StreamInfo info) {
-                return info.getPlatform() == Platform.KICK;
+                return Platform.of("kick").equals(info.getPlatform());
             }
         };
 
@@ -111,7 +111,7 @@ class InspectionPipelineTest {
 
         StreamInfo kickInfo = StreamInfo.builder()
                 .channelUrl(ChannelUrl.of("https://kick.com/streamer"))
-                .platform(Platform.KICK)
+                .platform(Platform.of("kick"))
                 .build();
 
         StepVerifier.create(pipeline.execute(kickInfo))
@@ -142,7 +142,7 @@ class InspectionPipelineTest {
 
         StreamInfo initial = StreamInfo.builder()
                 .channelUrl(ChannelUrl.of("https://twitch.tv/offline_channel"))
-                .platform(Platform.TWITCH)
+                .platform(Platform.of("twitch"))
                 .build();
 
         StepVerifier.create(pipeline.execute(initial))

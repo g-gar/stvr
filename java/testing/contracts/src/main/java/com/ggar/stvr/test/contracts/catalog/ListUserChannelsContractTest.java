@@ -44,7 +44,7 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Zeta Channel"),
                 ChannelUrl.of("https://twitch.tv/zeta"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 false
         );
         // Favorite 'Alpha'
@@ -52,7 +52,7 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Alpha Streamer"),
                 ChannelUrl.of("https://youtube.com/@alpha"),
-                Platform.YOUTUBE,
+                Platform.of("youtube"),
                 true
         );
         // Favorite 'Beta'
@@ -60,7 +60,7 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Beta Player"),
                 ChannelUrl.of("https://kick.com/beta"),
-                Platform.KICK,
+                Platform.of("kick"),
                 true
         );
         // Non-favorite 'Delta'
@@ -68,7 +68,7 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Delta Gaming"),
                 ChannelUrl.of("https://twitch.tv/delta"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 false
         );
 
@@ -78,7 +78,7 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Other User Channel"),
                 ChannelUrl.of("https://twitch.tv/other"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 true
         );
 
@@ -123,21 +123,21 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Twitch Guy"),
                 ChannelUrl.of("https://twitch.tv/guy"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 false
         );
         UserChannelListItemDto youtubeCh = new UserChannelListItemDto(
                 ChannelId.random(),
                 ChannelName.of("YouTube Star"),
                 ChannelUrl.of("https://youtube.com/@star"),
-                Platform.YOUTUBE,
+                Platform.of("youtube"),
                 true
         );
         UserChannelListItemDto kickCh = new UserChannelListItemDto(
                 ChannelId.random(),
                 ChannelName.of("Kick Pro"),
                 ChannelUrl.of("https://kick.com/pro"),
-                Platform.KICK,
+                Platform.of("kick"),
                 false
         );
 
@@ -146,13 +146,13 @@ public abstract class ListUserChannelsContractTest {
 
         // Act & Assert (Filter only YOUTUBE)
         ChannelFilter filter = ChannelFilter.builder()
-                .platform(Platform.YOUTUBE)
+                .platform(Platform.of("youtube"))
                 .build();
 
         StepVerifier.create(getHandler().handle(new ListUserChannelsQuery(userId, filter)))
                 .assertNext(ch -> {
                     assertThat(ch.id()).isEqualTo(youtubeCh.id());
-                    assertThat(ch.platform()).isEqualTo(Platform.YOUTUBE);
+                    assertThat(ch.platform()).isEqualTo(Platform.of("youtube"));
                     assertThat(ch.name()).isEqualTo(ChannelName.of("YouTube Star"));
                 })
                 .verifyComplete();
@@ -167,21 +167,21 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Fav A"),
                 ChannelUrl.of("https://twitch.tv/fava"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 true
         );
         UserChannelListItemDto nonFav = new UserChannelListItemDto(
                 ChannelId.random(),
                 ChannelName.of("Normal B"),
                 ChannelUrl.of("https://twitch.tv/normalb"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 false
         );
         UserChannelListItemDto fav2 = new UserChannelListItemDto(
                 ChannelId.random(),
                 ChannelName.of("Fav C"),
                 ChannelUrl.of("https://youtube.com/@favc"),
-                Platform.YOUTUBE,
+                Platform.of("youtube"),
                 true
         );
 
@@ -214,14 +214,14 @@ public abstract class ListUserChannelsContractTest {
                 ChannelId.random(),
                 ChannelName.of("Ibai Llanos"),
                 ChannelUrl.of("https://twitch.tv/ibai"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 true
         );
         UserChannelListItemDto streamer2 = new UserChannelListItemDto(
                 ChannelId.random(),
                 ChannelName.of("AuronPlay"),
                 ChannelUrl.of("https://twitch.tv/auronplay"),
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 false
         );
 

@@ -26,13 +26,13 @@ class ChannelFilterTest {
     void shouldBuildCustomFilterWithNormalization() {
         ChannelFilter filter = ChannelFilter.builder()
                 .nameQuery("Ibai")
-                .platform(Platform.TWITCH)
-                .platforms(List.of(Platform.YOUTUBE))
+                .platform(Platform.of("twitch"))
+                .platforms(List.of(Platform.of("youtube")))
                 .favoritesOnly(true)
                 .build();
 
         assertThat(filter.nameQuery()).isEqualTo("Ibai");
-        assertThat(filter.platforms()).containsExactlyInAnyOrder(Platform.TWITCH, Platform.YOUTUBE);
+        assertThat(filter.platforms()).containsExactlyInAnyOrder(Platform.of("twitch"), Platform.of("youtube"));
         assertThat(filter.favoritesOnly()).isTrue();
     }
 
@@ -40,10 +40,10 @@ class ChannelFilterTest {
     @DisplayName("Platforms set in ChannelFilter should be immutable")
     void shouldEnsureImmutability() {
         ChannelFilter filter = ChannelFilter.builder()
-                .platform(Platform.TWITCH)
+                .platform(Platform.of("twitch"))
                 .build();
 
-        assertThatThrownBy(() -> filter.platforms().add(Platform.KICK))
+        assertThatThrownBy(() -> filter.platforms().add(Platform.of("kick")))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 }

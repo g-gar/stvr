@@ -16,20 +16,30 @@ import java.util.stream.Collectors;
 @Component
 public class InspectionPipeline {
 
-    private final List<InspectionPlugin> orderedPlugins;
+    private final java.util.function.Supplier<List<InspectionPlugin>> pluginsSupplier;
+    private final String configuredPipeline;
 
     public InspectionPipeline(
             List<InspectionPlugin> availablePlugins,
             @Value("${stvr.inspection.pipeline:}") String configuredPipeline
     ) {
         Objects.requireNonNull(availablePlugins, "availablePlugins cannot be null");
-        this.orderedPlugins = sortPlugins(availablePlugins, configuredPipeline);
+        this.pluginsSupplier = () -> availablePlugins;
+        this.configuredPipeline = configuredPipeline;
+    }
+
+    public InspectionPipeline(
+            java.util.function.Supplier<List<InspectionPlugin>> pluginsSupplier,
+            String configuredPipeline
+    ) {
+        this.pluginsSupplier = Objects.requireNonNull(pluginsSupplier, "pluginsSupplier cannot be null");
+        this.configuredPipeline = configuredPipeline;
     }
 
     public Mono<StreamInfo> execute(StreamInfo initialInfo) {
         Objects.requireNonNull(initialInfo, "initialInfo cannot be null");
 
-        List<InspectionPlugin> applicablePlugins = orderedPlugins.stream()
+        List<InspectionPlugin> applicablePlugins = getOrderedPlugins().stream()
                 .filter(plugin -> plugin.supports(initialInfo))
                 .toList();
 
@@ -37,7 +47,7 @@ public class InspectionPipeline {
     }
 
     public List<InspectionPlugin> getOrderedPlugins() {
-        return Collections.unmodifiableList(orderedPlugins);
+        return Collections.unmodifiableList(sortPlugins(pluginsSupplier.get(), configuredPipeline));
     }
 
     private InspectionChain buildChain(List<InspectionPlugin> plugins, int index) {
