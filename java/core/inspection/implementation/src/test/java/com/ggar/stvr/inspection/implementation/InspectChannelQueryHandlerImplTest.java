@@ -32,7 +32,7 @@ class InspectChannelQueryHandlerImplTest {
 
             @Override
             public Mono<ChannelResolution> resolve(ChannelUrl u) {
-                return Mono.just(ChannelResolution.of(Platform.TWITCH, "shroud", ChannelName.of("shroud")));
+                return Mono.just(ChannelResolution.of(Platform.of("twitch"), "shroud", ChannelName.of("shroud")));
             }
         };
 
@@ -41,7 +41,7 @@ class InspectChannelQueryHandlerImplTest {
 
         StepVerifier.create(handler.handle(new InspectChannelQuery(url)))
                 .assertNext(res -> {
-                    assertThat(res.platform()).isEqualTo(Platform.TWITCH);
+                    assertThat(res.platform()).isEqualTo(Platform.of("twitch"));
                     assertThat(res.slug()).isEqualTo("shroud");
                     assertThat(res.name()).isEqualTo(ChannelName.of("shroud"));
                 })

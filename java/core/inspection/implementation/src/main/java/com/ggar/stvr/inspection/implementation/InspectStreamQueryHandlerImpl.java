@@ -26,7 +26,7 @@ public class InspectStreamQueryHandlerImpl implements InspectStreamQueryHandler 
 
         StreamInfo initial = StreamInfo.builder()
                 .channelUrl(query.url())
-                .platform(query.platform() != null ? query.platform() : Platform.CUSTOM)
+                .platform(query.platform() != null ? query.platform() : Platform.of("custom"))
                 .live(false)
                 .build();
 

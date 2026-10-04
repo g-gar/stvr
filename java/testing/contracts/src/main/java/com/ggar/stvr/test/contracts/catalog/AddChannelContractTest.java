@@ -43,7 +43,7 @@ public abstract class AddChannelContractTest {
         AddChannelCommand command = new AddChannelCommand(
                 userId,
                 url,
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 "shroud",
                 name
         );
@@ -53,7 +53,7 @@ public abstract class AddChannelContractTest {
                     assertThat(dto.id()).isNotNull();
                     assertThat(dto.name()).isEqualTo(name);
                     assertThat(dto.url()).isEqualTo(url);
-                    assertThat(dto.platform()).isEqualTo(Platform.TWITCH);
+                    assertThat(dto.platform()).isEqualTo(Platform.of("twitch"));
                     assertThat(dto.isFavorite()).isFalse();
                     assertThat(isChannelAssociatedWithUser(userId, dto.id())).isTrue();
                 })
@@ -72,28 +72,28 @@ public abstract class AddChannelContractTest {
         AddChannelCommand ytCommand = new AddChannelCommand(
                 userId,
                 ytUrl,
-                Platform.YOUTUBE,
+                Platform.of("youtube"),
                 "ch1",
                 ChannelName.of("YT Stream")
         );
         AddChannelCommand kickCommand = new AddChannelCommand(
                 userId,
                 kickUrl,
-                Platform.KICK,
+                Platform.of("kick"),
                 "xqc",
                 ChannelName.of("xQc")
         );
 
         StepVerifier.create(getHandler().handle(ytCommand))
                 .assertNext(dto -> {
-                    assertThat(dto.platform()).isEqualTo(Platform.YOUTUBE);
+                    assertThat(dto.platform()).isEqualTo(Platform.of("youtube"));
                     assertThat(dto.name()).isEqualTo(ChannelName.of("YT Stream"));
                 })
                 .verifyComplete();
 
         StepVerifier.create(getHandler().handle(kickCommand))
                 .assertNext(dto -> {
-                    assertThat(dto.platform()).isEqualTo(Platform.KICK);
+                    assertThat(dto.platform()).isEqualTo(Platform.of("kick"));
                     assertThat(dto.name()).isEqualTo(ChannelName.of("xQc"));
                 })
                 .verifyComplete();
@@ -106,16 +106,16 @@ public abstract class AddChannelContractTest {
         ChannelUrl url = ChannelUrl.of("https://twitch.tv/ninja");
         ChannelName name = ChannelName.of("Ninja");
 
-        assertThatThrownBy(() -> new AddChannelCommand(null, url, Platform.TWITCH, "ninja", name))
+        assertThatThrownBy(() -> new AddChannelCommand(null, url, Platform.of("twitch"), "ninja", name))
                 .isInstanceOf(NullPointerException.class);
 
-        assertThatThrownBy(() -> new AddChannelCommand(userId, null, Platform.TWITCH, "ninja", name))
+        assertThatThrownBy(() -> new AddChannelCommand(userId, null, Platform.of("twitch"), "ninja", name))
                 .isInstanceOf(NullPointerException.class);
 
         assertThatThrownBy(() -> new AddChannelCommand(userId, url, null, "ninja", name))
                 .isInstanceOf(NullPointerException.class);
 
-        assertThatThrownBy(() -> new AddChannelCommand(userId, url, Platform.TWITCH, "ninja", null))
+        assertThatThrownBy(() -> new AddChannelCommand(userId, url, Platform.of("twitch"), "ninja", null))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -129,7 +129,7 @@ public abstract class AddChannelContractTest {
         AddChannelCommand command = new AddChannelCommand(
                 userId,
                 url,
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 "duplicate_streamer",
                 name
         );
@@ -160,7 +160,7 @@ public abstract class AddChannelContractTest {
         AddChannelCommand commandA = new AddChannelCommand(
                 userA,
                 url,
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 "only_for_user_a",
                 name
         );
@@ -184,14 +184,14 @@ public abstract class AddChannelContractTest {
         AddChannelCommand commandA = new AddChannelCommand(
                 userA,
                 sharedUrl,
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 "ibai",
                 name
         );
         AddChannelCommand commandB = new AddChannelCommand(
                 userB,
                 sharedUrl,
-                Platform.TWITCH,
+                Platform.of("twitch"),
                 "ibai",
                 name
         );

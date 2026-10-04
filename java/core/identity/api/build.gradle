@@ -1,6 +1,6 @@
 dependencies {
     api project(':core:identity:entities')
-    api project(':framework')
+    api project(':framework:core')
     implementation 'io.projectreactor:reactor-core'
 }
 

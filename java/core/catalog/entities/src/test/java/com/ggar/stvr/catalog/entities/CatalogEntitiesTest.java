@@ -47,20 +47,41 @@ class CatalogEntitiesTest {
     }
 
     @Test
+    void shouldCreateAndValidatePlatform() {
+        Platform twitch = Platform.of("Twitch");
+        assertThat(twitch).isEqualTo(Platform.of("twitch"));
+        assertThat(twitch.value()).isEqualTo("twitch");
+        assertThat(twitch.name()).isEqualTo("TWITCH");
+
+        Platform rtve = Platform.of("  RTVE  ");
+        assertThat(rtve.value()).isEqualTo("rtve");
+        assertThat(rtve.name()).isEqualTo("RTVE");
+
+        Platform custom = Platform.of(null);
+        assertThat(custom).isEqualTo(Platform.of("custom"));
+
+        Platform blank = Platform.of("   ");
+        assertThat(blank).isEqualTo(Platform.of("custom"));
+
+        assertThatThrownBy(() -> new Platform("   "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void shouldCreateAndValidateChannelEntity() {
         ChannelId id = ChannelId.random();
         ChannelUrl url = ChannelUrl.of("https://twitch.tv/ibai");
         ChannelName name = ChannelName.of("Ibai");
 
-        Channel channel = new Channel(id, url, Platform.TWITCH, "ibai", name);
+        Channel channel = new Channel(id, url, Platform.of("twitch"), "ibai", name);
 
         assertThat(channel.getId()).isEqualTo(id);
         assertThat(channel.getUrl()).isEqualTo(url);
-        assertThat(channel.getPlatform()).isEqualTo(Platform.TWITCH);
+        assertThat(channel.getPlatform()).isEqualTo(Platform.of("twitch"));
         assertThat(channel.getSlug()).isEqualTo("ibai");
         assertThat(channel.getName()).isEqualTo(name);
 
-        Channel sameIdChannel = new Channel(id, url, Platform.TWITCH, "ibai", name);
+        Channel sameIdChannel = new Channel(id, url, Platform.of("twitch"), "ibai", name);
         assertThat(channel).isEqualTo(sameIdChannel);
         assertThat(channel.hashCode()).isEqualTo(sameIdChannel.hashCode());
     }
@@ -106,4 +127,55 @@ class CatalogEntitiesTest {
         assertThat(endedSession.isActive()).isFalse();
         assertThat(endedSession.getEndedAt()).isNotNull();
     }
+
+    record SamplePlatformMetadata(String partnerStatus, int followers) implements PlatformMetadata {
+        @Override
+        public java.util.Map<String, Object> asMap() {
+            return java.util.Map.of("partnerStatus", partnerStatus, "followers", followers);
+        }
+    }
+
+    record AnotherPlatformMetadata(String region) implements PlatformMetadata {}
+
+    @Test
+    void shouldSupportTypedPlatformMetadataOnChannel() {
+        ChannelId id = ChannelId.random();
+        ChannelUrl url = ChannelUrl.of("https://twitch.tv/ibai");
+        ChannelName name = ChannelName.of("Ibai");
+        SamplePlatformMetadata customMeta = new SamplePlatformMetadata("partner", 10_000_000);
+
+        Channel channel = new Channel(id, url, Platform.of("twitch"), "ibai", name, customMeta);
+
+        // Typed access
+        java.util.Optional<SamplePlatformMetadata> retrieved = channel.getMetadata(SamplePlatformMetadata.class);
+        assertThat(retrieved).isPresent();
+        assertThat(retrieved.get().partnerStatus()).isEqualTo("partner");
+        assertThat(retrieved.get().followers()).isEqualTo(10_000_000);
+
+        // Querying for unmatching metadata type
+        assertThat(channel.getMetadata(AnotherPlatformMetadata.class)).isEmpty();
+
+        // Map backward compatibility
+        assertThat(channel.getMetadata()).containsEntry("partnerStatus", "partner");
+        assertThat(channel.getMetadata()).containsEntry("followers", 10_000_000);
+    }
+
+    @Test
+    void shouldSupportTypedPlatformMetadataOnStreamSession() {
+        SessionId sessionId = SessionId.random();
+        ChannelId channelId = ChannelId.random();
+        SamplePlatformMetadata customMeta = new SamplePlatformMetadata("verified", 500);
+
+        StreamSession session = StreamSession.builder()
+                .id(sessionId)
+                .channelId(channelId)
+                .startedAt(java.time.Instant.now())
+                .platformMetadata(customMeta)
+                .build();
+
+        assertThat(session.getMetadata(SamplePlatformMetadata.class)).contains(customMeta);
+        assertThat(session.getMetadata(AnotherPlatformMetadata.class)).isEmpty();
+        assertThat(session.getMetadata()).containsEntry("partnerStatus", "verified");
+    }
 }
+

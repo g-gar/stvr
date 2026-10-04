@@ -28,7 +28,7 @@ public class StreamSession {
     private final List<String> tags;
     private final Instant startedAt;
     private final Instant endedAt;
-    private final Map<String, Object> metadata;
+    private final PlatformMetadata platformMetadata;
 
     @Builder(toBuilder = true)
     public StreamSession(
@@ -39,7 +39,7 @@ public class StreamSession {
             List<String> tags,
             Instant startedAt,
             Instant endedAt,
-            Map<String, Object> metadata
+            PlatformMetadata platformMetadata
     ) {
         this.id = Objects.requireNonNull(id, "SessionId cannot be null");
         this.channelId = Objects.requireNonNull(channelId, "ChannelId cannot be null");
@@ -48,10 +48,41 @@ public class StreamSession {
         this.tags = tags != null ? List.copyOf(tags) : Collections.emptyList();
         this.startedAt = Objects.requireNonNull(startedAt, "startedAt cannot be null");
         this.endedAt = endedAt;
-        this.metadata = metadata != null ? Map.copyOf(metadata) : Collections.emptyMap();
+        this.platformMetadata = platformMetadata != null ? platformMetadata : GenericPlatformMetadata.empty();
     }
 
     public boolean isActive() {
         return endedAt == null;
     }
+
+    /**
+     * Returns the metadata as a key-value map for serialization, persistence, and generic clients.
+     *
+     * @return map of metadata attributes
+     */
+    public Map<String, Object> getMetadata() {
+        return platformMetadata.asMap();
+    }
+
+    /**
+     * Retrieves the platform-specific session metadata safely typed to the requested class.
+     *
+     * @param type target metadata class
+     * @param <T> metadata type extending PlatformMetadata
+     * @return Optional containing the typed metadata if matching, or empty
+     */
+    public <T extends PlatformMetadata> java.util.Optional<T> getMetadata(Class<T> type) {
+        if (type != null && type.isInstance(platformMetadata)) {
+            return java.util.Optional.of(type.cast(platformMetadata));
+        }
+        return java.util.Optional.empty();
+    }
+
+    public static class StreamSessionBuilder {
+        public StreamSessionBuilder metadata(Map<String, Object> metadata) {
+            this.platformMetadata = PlatformMetadata.of(metadata);
+            return this;
+        }
+    }
 }
+

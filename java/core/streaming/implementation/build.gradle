@@ -1,7 +1,7 @@
 dependencies {
     api project(':core:streaming:api')
     implementation project(':core:streaming:entities')
-    implementation project(':core:streaming:persistence')
-    implementation project(':packages:streamlink')
     implementation 'org.springframework:spring-context'
+    implementation 'org.slf4j:slf4j-api'
 }
+
