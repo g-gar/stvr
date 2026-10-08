@@ -12,8 +12,8 @@ import java.util.Objects;
 
 /**
  * CQRS query handler interface for UC-STR-01: Open Live Preview Stream.
- * Joins an active multicast stream hub or launches a new ingestion session,
- * returning a continuous reactive flux of video bytes.
+ * Connects to a matching {@link LiveStreamProvider} SPI, returning a continuous reactive flux of video bytes,
+ * while publishing visitor and quota metrics for the session.
  */
 public interface OpenLivePreviewQueryHandler
         extends QueryHandler<OpenLivePreviewQueryHandler.OpenLivePreviewQuery, byte[]> {
@@ -31,11 +31,14 @@ public interface OpenLivePreviewQueryHandler
             Objects.requireNonNull(channelId, "channelId cannot be null");
             Objects.requireNonNull(url, "url cannot be null");
             quality = quality != null ? quality : StreamQuality.BEST;
-            Objects.requireNonNull(userId, "userId cannot be null");
         }
 
         public OpenLivePreviewQuery(ChannelId channelId, ChannelUrl url, UserId userId) {
             this(channelId, url, StreamQuality.BEST, userId);
+        }
+
+        public OpenLivePreviewQuery(ChannelId channelId, ChannelUrl url) {
+            this(channelId, url, StreamQuality.BEST, null);
         }
     }
 }
